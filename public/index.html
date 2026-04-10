@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EsXAI CRM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#263248;--border:#334155;
+  --accent:#14b8a6;--accent2:#0ea5e9;--danger:#ef4444;--warn:#f59e0b;--success:#22c55e;
+  --text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;
+  --m1:#6366f1;--m2:#f59e0b;--m3:#22c55e;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:14px}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── Login ── */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at center,#1e293b 0%,#0f172a 100%)}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:400px}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-logo h1{font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.login-logo p{color:var(--text2);font-size:13px;margin-top:4px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;transition:.2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:.2s}
+.btn-primary{background:var(--accent);color:#0f172a}
+.btn-primary:hover{background:#0d9488}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--border)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-full{width:100%;justify-content:center}
+.error-msg{color:var(--danger);font-size:13px;margin-top:8px}
+
+/* ── App Layout ── */
+#app{display:none;height:100vh;overflow:hidden;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;height:56px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:100}
+.topbar-logo{font-weight:800;font-size:18px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px}
+.topbar-nav{display:flex;gap:4px;flex:1}
+.nav-btn{background:none;border:none;color:var(--text2);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px;transition:.2s}
+.nav-btn:hover{background:var(--surface2);color:var(--text)}
+.nav-btn.active{background:var(--accent);color:#0f172a}
+.topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.user-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text2)}
+.main-content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── Cards & Grid ── */
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(2,1fr)}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+.grid-5{grid-template-columns:repeat(5,1fr)}
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-5{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.grid-2,.grid-3,.grid-4,.grid-5{grid-template-columns:1fr}.topbar-nav{display:none}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.card-sm{padding:14px 18px}
+.section-title{font-size:18px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+/* ── KPI Cards ── */
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent-color,var(--accent))}
+.kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);font-weight:600}
+.kpi-value{font-size:32px;font-weight:800;margin:6px 0;color:var(--text)}
+.kpi-sub{font-size:12px;color:var(--text2)}
+.kpi-icon{position:absolute;right:16px;top:16px;font-size:28px;opacity:.3}
+
+/* ── Tables ── */
+.table-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse}
+th{background:var(--surface2);padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:600;white-space:nowrap}
+td{padding:10px 14px;border-top:1px solid var(--border);vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,.02)}
+.clickable-row{cursor:pointer}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-nuevo{background:#1e40af22;color:#60a5fa;border:1px solid #1e40af44}
+.badge-activo{background:#16532222;color:#4ade80;border:1px solid #16532244}
+.badge-caliente{background:#78350f22;color:#fbbf24;border:1px solid #78350f44}
+.badge-cliente{background:#14b8a622;color:#14b8a6;border:1px solid #14b8a644}
+.badge-inactivo{background:#33333322;color:#94a3b8;border:1px solid #33333344}
+.badge-locked{background:#1e293b;color:#64748b;border:1px solid #334155}
+.badge-in_progress{background:#6366f122;color:#818cf8;border:1px solid #6366f144}
+.badge-completed{background:#16532222;color:#4ade80;border:1px solid #16532244}
+.badge-not_started{background:#1e293b;color:#64748b;border:1px solid #334155}
+
+/* ── Module Progress ── */
+.mod-bar{display:flex;align-items:center;gap:8px;margin:3px 0}
+.mod-label{font-size:11px;color:var(--text3);width:24px;flex-shrink:0}
+.progress-track{flex:1;background:var(--bg);border-radius:4px;height:6px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width .3s}
+.fill-m1{background:var(--m1)}
+.fill-m2{background:var(--m2)}
+.fill-m3{background:var(--m3)}
+.mod-pct{font-size:10px;color:var(--text3);width:30px;text-align:right}
+
+/* ── Pipeline Kanban ── */
+.kanban{display:flex;gap:14px;overflow-x:auto;padding-bottom:16px;height:calc(100vh - 160px)}
+.kanban-col{flex:0 0 240px;background:var(--surface);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;max-height:100%}
+.kanban-header{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.kanban-count{background:var(--surface2);padding:2px 8px;border-radius:10px;font-size:11px;color:var(--text2)}
+.kanban-body{overflow-y:auto;padding:10px;flex:1;display:flex;flex-direction:column;gap:8px}
+.kcard{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:.2s}
+.kcard:hover{border-color:var(--accent);transform:translateY(-1px)}
+.kcard-name{font-weight:600;font-size:13px;margin-bottom:4px}
+.kcard-phone{font-size:11px;color:var(--text3)}
+.kcard-pts{font-size:11px;color:var(--accent);margin-top:6px}
+
+/* ── User Detail Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:760px;margin:auto}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-body{padding:24px;max-height:80vh;overflow-y:auto}
+.close-btn{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px}
+.close-btn:hover{background:var(--surface2);color:var(--text)}
+
+/* ── Chat History ── */
+.chat-wrap{display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;padding:4px}
+.chat-bubble{max-width:80%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5}
+.chat-in{align-self:flex-start;background:var(--surface2);border:1px solid var(--border);border-radius:12px 12px 12px 2px}
+.chat-out{align-self:flex-end;background:#14b8a622;border:1px solid #14b8a644;border-radius:12px 12px 2px 12px}
+.chat-meta{font-size:10px;color:var(--text3);margin-top:4px}
+.emotion-tag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;background:#f59e0b22;color:#fbbf24;margin-left:6px}
+
+/* ── Filters Bar ── */
+.filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-input{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;min-width:200px}
+.filter-input:focus{outline:none;border-color:var(--accent)}
+select.filter-input option{background:var(--surface)}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{background:none;border:none;color:var(--text3);padding:10px 16px;cursor:pointer;font-size:13px;font-weight:500;border-bottom:2px solid transparent;transition:.2s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ── Activity Feed ── */
+.activity-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.activity-item:last-child{border-bottom:none}
+.activity-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px}
+.activity-text{font-size:13px;color:var(--text);line-height:1.4}
+.activity-time{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;z-index:9999;transform:translateY(20px);opacity:0;transition:.3s;max-width:300px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast-success{border-left:3px solid var(--success)}
+.toast-error{border-left:3px solid var(--danger)}
+
+/* ── Misc ── */
+.text-muted{color:var(--text2)}
+.text-sm{font-size:12px}
+.mt-4{margin-top:4px}.mt-8{margin-top:8px}.mt-16{margin-top:16px}.mt-24{margin-top:24px}
+.mb-8{margin-bottom:8px}.mb-16{margin-bottom:16px}
+.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-between{justify-content:space-between}.gap-8{gap:8px}.gap-12{gap:12px}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:48px;color:var(--text3)}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <h1>📊 EsXAI CRM</h1>
+      <p>Sistema de Educación Financiera</p>
+    </div>
+    <div class="form-group">
+      <label>Usuario</label>
+      <input type="text" id="login-user" placeholder="usuario" value="admin">
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" placeholder="••••••••" value="esxai2026">
+    </div>
+    <div id="login-error" class="error-msg"></div>
+    <button class="btn btn-primary btn-full mt-16" onclick="doLogin()">Ingresar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <span class="topbar-logo">📊 EsXAI</span>
+    <nav class="topbar-nav">
+      <button class="nav-btn active" onclick="goTo('dashboard')" data-view="dashboard">📈 Dashboard</button>
+      <button class="nav-btn" onclick="goTo('usuarios')" data-view="usuarios">👥 Usuarios</button>
+      <button class="nav-btn" onclick="goTo('pipeline')" data-view="pipeline">🎯 Pipeline</button>
+      <button class="nav-btn" onclick="goTo('config')" data-view="config">⚙️ Config</button>
+    </nav>
+    <div class="topbar-right">
+      <span class="live-dot" title="En vivo"></span>
+      <span class="user-chip" id="user-chip">...</span>
+      <button class="btn btn-secondary btn-sm" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+
+  <div class="main-content" id="main-content">
+    <!-- Views loaded here -->
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div class="modal" id="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div id="modal-title" style="font-size:16px;font-weight:700"></div>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ─────────────────────────────────────────────────────────────────────
+let TOKEN = localStorage.getItem('esxai_token');
+let ME = null;
+let charts = {};
+let refreshTimer = null;
+
+// ─── Auth ──────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const user = document.getElementById('login-user').value;
+  const pass = document.getElementById('login-pass').value;
+  document.getElementById('login-error').textContent = '';
+  try {
+    const r = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:user, password:pass}) });
+    const data = await r.json();
+    if (!r.ok) { document.getElementById('login-error').textContent = data.error; return; }
+    TOKEN = data.token;
+    ME = data.user;
+    localStorage.setItem('esxai_token', TOKEN);
+    showApp();
+  } catch(e) { document.getElementById('login-error').textContent = 'Error de conexión'; }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') doLogin();
+});
+
+function doLogout() {
+  TOKEN = null; ME = null;
+  localStorage.removeItem('esxai_token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  if (refreshTimer) clearInterval(refreshTimer);
+}
+
+async function api(url, opts={}) {
+  const r = await fetch(url, { ...opts, headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json', ...opts.headers } });
+  if (r.status === 401) { doLogout(); return null; }
+  return r.json();
+}
+
+// ─── App Shell ─────────────────────────────────────────────────────────────────
+async function showApp() {
+  if (!TOKEN) return;
+  if (!ME) {
+    // verify token
+    try {
+      const payload = JSON.parse(atob(TOKEN.split('.')[1]));
+      ME = { username: payload.username, role: payload.role, display_name: payload.display_name };
+    } catch { doLogout(); return; }
+  }
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('user-chip').textContent = ME.display_name || ME.username;
+  goTo('dashboard');
+}
+
+function goTo(view) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  if (refreshTimer) clearInterval(refreshTimer);
+  const mc = document.getElementById('main-content');
+  mc.innerHTML = '<div style="padding:40px;text-align:center"><div class="spinner"></div></div>';
+  views[view]();
+}
+
+// ─── Views ─────────────────────────────────────────────────────────────────────
+const views = {
+
+  // ── Dashboard ──
+  async dashboard() {
+    const mc = document.getElementById('main-content');
+    const m = await api('/api/metrics');
+    if (!m) return;
+
+    const launchDateStr = m.launchDate ? new Date(m.launchDate).toLocaleDateString('es-AR',{day:'numeric',month:'short'}) : '—';
+
+    mc.innerHTML = `
+      <div class="section-title">📈 Dashboard <span class="text-sm text-muted" style="font-weight:400">Último lanzamiento: ${launchDateStr}</span></div>
+
+      <div class="grid grid-5 mb-16">
+        ${kpiCard('Total Usuarios', m.total, `${m.fromLaunch} desde lanzamiento`, '👥', '#6366f1')}
+        ${kpiCard('Activos Hoy', m.activeToday, `${m.activeWeek} esta semana`, '🔥', '#f59e0b')}
+        ${kpiCard('Mensajes Hoy', m.msgsToday, 'interacciones del bot', '💬', '#0ea5e9')}
+        ${kpiCard('Clientes', m.clients, `desde el lanzamiento`, '⭐', '#14b8a6')}
+        ${kpiCard('Pts Promedio', m.avgPoints, 'por usuario activo', '🏆', '#22c55e')}
+      </div>
+
+      <div class="grid grid-2 mb-16">
+        <div class="card">
+          <div class="section-title" style="font-size:14px">📅 Nuevos Usuarios (últimos 14 días)</div>
+          <canvas id="chart-daily" height="160"></canvas>
+        </div>
+        <div class="card">
+          <div class="section-title" style="font-size:14px">🎯 Pipeline de Leads</div>
+          <canvas id="chart-pipeline" height="160"></canvas>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="section-title" style="font-size:14px">📚 Progreso en Módulos</div>
+          ${moduleBar('M1: El Dinero y Vos', m.modules.m1Active, m.modules.m1Done, '#6366f1')}
+          ${moduleBar('M2: Orden Financiero', m.modules.m2Active, m.modules.m2Done, '#f59e0b')}
+          ${moduleBar('M3: Metas y Crecimiento', m.modules.m3Active, m.modules.m3Done, '#22c55e')}
+        </div>
+        <div class="card">
+          <div class="section-title" style="font-size:14px">⚡ Actividad Reciente</div>
+          <div style="max-height:280px;overflow-y:auto">
+            ${m.recent.slice(0,10).map(r => `
+              <div class="activity-item">
+                <div class="activity-dot" style="background:${r.direction==='in'?'#60a5fa':'#4ade80'}"></div>
+                <div>
+                  <div class="activity-text">
+                    <strong>${r.name || formatPhone(r.user_phone)}</strong>
+                    ${r.direction==='in'?'→':'←'}
+                    "${truncate(r.message||'—', 50)}"
+                    ${r.emotion ? `<span class="emotion-tag">${r.emotion}</span>` : ''}
+                  </div>
+                  <div class="activity-time">${timeAgo(r.timestamp)} · ${r.stage||'—'}</div>
+                </div>
+              </div>`).join('') || '<div class="empty-state"><div class="icon">💤</div>Sin actividad reciente</div>'}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Charts
+    const dailyLabels = m.daily.map(d => d.day.slice(5));
+    const dailyData = m.daily.map(d => d.c);
+    renderChart('chart-daily', 'bar', dailyLabels, dailyData, '#14b8a6', 'Nuevos usuarios');
+
+    const pipelineMap = { nuevo:'Nuevo', activo:'Activo', caliente:'Caliente', cliente:'Cliente', inactivo:'Inactivo' };
+    const pipelineColors = ['#60a5fa','#4ade80','#fbbf24','#14b8a6','#94a3b8'];
+    const pLabels = m.pipeline.map(p => pipelineMap[p.lead_status] || p.lead_status);
+    const pData = m.pipeline.map(p => p.c);
+    renderChart('chart-pipeline', 'doughnut', pLabels, pData, pipelineColors, '');
+
+    // Auto-refresh every 30s
+    refreshTimer = setInterval(() => views.dashboard(), 30000);
+  },
+
+  // ── Usuarios ──
+  async usuarios() {
+    const mc = document.getElementById('main-content');
+    mc.innerHTML = `
+      <div class="flex justify-between items-center mb-16">
+        <div class="section-title">👥 Usuarios del Bot</div>
+        <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇️ Exportar CSV</button>
+      </div>
+      <div class="filters">
+        <input class="filter-input" id="f-search" placeholder="🔍 Buscar nombre o teléfono..." oninput="debounce(loadUsers, 400)()" style="min-width:240px">
+        <select class="filter-input" id="f-lead" onchange="loadUsers()">
+          <option value="">Todos los estados</option>
+          <option value="nuevo">Nuevo</option>
+          <option value="activo">Activo</option>
+          <option value="caliente">Caliente</option>
+          <option value="cliente">Cliente</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
+        <select class="filter-input" id="f-mod" onchange="loadUsers()">
+          <option value="">Todos los módulos</option>
+          <option value="m1">En M1</option>
+          <option value="m2">En M2</option>
+          <option value="m3">En M3</option>
+        </select>
+      </div>
+      <div class="card" style="padding:0">
+        <div id="users-table-wrap" class="table-wrap">
+          <div style="padding:40px;text-align:center"><div class="spinner"></div></div>
+        </div>
+        <div id="pagination" class="flex justify-between items-center" style="padding:12px 16px;border-top:1px solid var(--border)"></div>
+      </div>
+    `;
+    loadUsers();
+  },
+
+  // ── Pipeline ──
+  async pipeline() {
+    const mc = document.getElementById('main-content');
+    mc.innerHTML = '<div style="padding:40px;text-align:center"><div class="spinner"></div></div>';
+    const data = await api('/api/pipeline');
+    if (!data) return;
+
+    const cols = [
+      { key:'nuevo', label:'🆕 Nuevo', color:'#60a5fa' },
+      { key:'activo', label:'✅ Activo', color:'#4ade80' },
+      { key:'caliente', label:'🔥 Caliente', color:'#fbbf24' },
+      { key:'cliente', label:'⭐ Cliente', color:'#14b8a6' },
+      { key:'inactivo', label:'💤 Inactivo', color:'#94a3b8' },
+    ];
+
+    mc.innerHTML = `
+      <div class="flex justify-between items-center mb-16">
+        <div class="section-title">🎯 Pipeline de Conversión</div>
+        <span class="text-sm text-muted">Arrastrá los usuarios entre columnas o hacé click para editar</span>
+      </div>
+      <div class="kanban">
+        ${cols.map(col => `
+          <div class="kanban-col">
+            <div class="kanban-header">
+              <span style="color:${col.color}">${col.label}</span>
+              <span class="kanban-count">${(data[col.key]||[]).length}</span>
+            </div>
+            <div class="kanban-body" id="kanban-${col.key}">
+              ${(data[col.key]||[]).map(u => `
+                <div class="kcard" onclick="openUser('${u.phone}')">
+                  <div class="kcard-name">${u.name||formatPhone(u.phone)}</div>
+                  <div class="kcard-phone">${formatPhone(u.phone)}</div>
+                  <div class="flex gap-8 mt-4" style="flex-wrap:wrap">
+                    ${modBadge('M1', u.m1_status)}
+                    ${modBadge('M2', u.m2_status)}
+                    ${modBadge('M3', u.m3_status)}
+                  </div>
+                  <div class="kcard-pts">🏆 ${u.total_points} pts · 💬 ${u.message_count} msgs</div>
+                  <div style="font-size:10px;color:var(--text3);margin-top:4px">${timeAgo(u.last_interaction)}</div>
+                </div>`).join('') || '<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">Sin usuarios</div>'}
+            </div>
+          </div>`).join('')}
+      </div>
+    `;
+  },
+
+  // ── Config ──
+  async config() {
+    const mc = document.getElementById('main-content');
+    const [settings, team] = await Promise.all([api('/api/settings'), api('/api/team')]);
+    if (!settings) return;
+
+    mc.innerHTML = `
+      <div class="section-title">⚙️ Configuración</div>
+
+      <div class="grid grid-2 gap-16">
+        <div class="card">
+          <div class="section-title" style="font-size:14px">🔌 Conexión con N8N</div>
+          <p class="text-muted text-sm mb-8">Agregá este nodo al final de tu workflow en N8N para enviar datos al CRM automáticamente.</p>
+          <div class="form-group mt-16">
+            <label>URL del Webhook</label>
+            <div class="flex gap-8">
+              <input type="text" id="webhook-url-input" value="${settings.webhook_url}" readonly style="flex:1;font-family:monospace;font-size:12px">
+              <button class="btn btn-secondary btn-sm" onclick="copyText('${settings.webhook_url}','URL copiada!')">📋</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Secret de Seguridad (opcional)</label>
+            <div class="flex gap-8">
+              <input type="text" id="webhook-secret-input" value="${settings.webhook_secret}" readonly style="flex:1;font-family:monospace;font-size:12px">
+              <button class="btn btn-secondary btn-sm" onclick="copyText('${settings.webhook_secret}','Secret copiado!')">📋</button>
+            </div>
+          </div>
+          <hr class="divider">
+          <div class="section-title" style="font-size:13px;margin-bottom:10px">📋 Código para N8N (nodo HTTP Request)</div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:monospace;font-size:11px;color:#94a3b8;line-height:1.8">
+            <strong style="color:var(--accent)">Nodo: HTTP Request</strong><br>
+            Method: POST<br>
+            URL: ${settings.webhook_url}<br>
+            Header: x-webhook-secret: ${settings.webhook_secret}<br>
+            Body (JSON):<br>
+            &nbsp;phone: {{ $('Body').first().json.phone }}<br>
+            &nbsp;user: {{ JSON.stringify($('Update State').first().json.user) }}<br>
+            &nbsp;msg: {{ $('Body').first().json.msg }}<br>
+            &nbsp;response: {{ $('Update State').first().json.response }}<br>
+            &nbsp;detected_emotion: {{ $('Update State').first().json.llmResponse.detected_emotion }}
+          </div>
+          <button class="btn btn-secondary btn-sm mt-8" onclick="copyN8NCode('${settings.webhook_url}','${settings.webhook_secret}')">📋 Copiar configuración</button>
+        </div>
+
+        <div class="card">
+          <div class="section-title" style="font-size:14px">🗓️ Configuración General</div>
+          <div class="form-group">
+            <label>Nombre del CRM</label>
+            <input type="text" id="cfg-name" value="${settings.crm_name}">
+          </div>
+          <div class="form-group">
+            <label>Fecha del Lanzamiento (para métricas)</label>
+            <input type="date" id="cfg-launch" value="${settings.launch_date}">
+          </div>
+          <button class="btn btn-primary btn-sm mt-8" onclick="saveSettings()">💾 Guardar</button>
+        </div>
+      </div>
+
+      <div class="card mt-16">
+        <div class="flex justify-between items-center mb-16">
+          <div class="section-title" style="font-size:14px">👥 Equipo con Acceso</div>
+          ${ME?.role==='admin' ? '<button class="btn btn-primary btn-sm" onclick="showAddUser()">+ Agregar</button>' : ''}
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Desde</th></tr></thead>
+            <tbody>
+              ${team.map(u => `<tr>
+                <td><code style="color:var(--accent)">${u.username}</code></td>
+                <td>${u.display_name||'—'}</td>
+                <td><span class="badge ${u.role==='admin'?'badge-cliente':'badge-activo'}">${u.role}</span></td>
+                <td class="text-muted text-sm">${new Date(u.created_at).toLocaleDateString('es-AR')}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card mt-16">
+        <div class="section-title" style="font-size:14px">🔑 Cambiar Contraseña</div>
+        <div class="grid grid-2">
+          <div>
+            <div class="form-group">
+              <label>Contraseña actual</label>
+              <input type="password" id="pw-current" placeholder="••••••••">
+            </div>
+            <div class="form-group">
+              <label>Nueva contraseña</label>
+              <input type="password" id="pw-new" placeholder="••••••••">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="changePassword()">Cambiar contraseña</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+};
+
+// ─── Users Table ───────────────────────────────────────────────────────────────
+let currentPage = 1;
+async function loadUsers(page) {
+  if (page) currentPage = page;
+  const search = document.getElementById('f-search')?.value || '';
+  const lead = document.getElementById('f-lead')?.value || '';
+  const mod = document.getElementById('f-mod')?.value || '';
+  const params = new URLSearchParams({ search, lead_status: lead, module: mod, page: currentPage, limit: 50 });
+  const data = await api('/api/users?' + params);
+  if (!data) return;
+
+  const wrap = document.getElementById('users-table-wrap');
+  if (!wrap) return;
+
+  if (data.users.length === 0) {
+    wrap.innerHTML = '<div class="empty-state"><div class="icon">👥</div>No se encontraron usuarios</div>';
+  } else {
+    wrap.innerHTML = `<table>
+      <thead><tr>
+        <th>Nombre</th><th>Teléfono</th><th>Estado Lead</th>
+        <th>Módulos</th><th>Puntos</th><th>Mensajes</th><th>Última interacción</th>
+      </tr></thead>
+      <tbody>
+        ${data.users.map(u => `
+          <tr class="clickable-row" onclick="openUser('${u.phone}')">
+            <td><strong>${u.name||'Sin nombre'}</strong><br><span class="text-sm text-muted">${u.age_range||'—'} · ${u.education_level||'—'}</span></td>
+            <td class="text-sm text-muted">${formatPhone(u.phone)}</td>
+            <td>${leadBadge(u.lead_status)}</td>
+            <td>
+              <div class="mod-bar">${modStatusDot(u.m1_status)} <span class="text-sm">M1</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m1" style="width:${u.m1_progress}%"></div></div></div>
+              <div class="mod-bar">${modStatusDot(u.m2_status)} <span class="text-sm">M2</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m2" style="width:${u.m2_progress}%"></div></div></div>
+              <div class="mod-bar">${modStatusDot(u.m3_status)} <span class="text-sm">M3</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m3" style="width:${u.m3_progress}%"></div></div></div>
+            </td>
+            <td><strong style="color:var(--accent)">${u.total_points}</strong></td>
+            <td>${u.message_count}</td>
+            <td class="text-sm text-muted">${timeAgo(u.last_interaction)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  const pag = document.getElementById('pagination');
+  if (pag) {
+    pag.innerHTML = `
+      <span class="text-sm text-muted">${data.total} usuarios totales</span>
+      <div class="flex gap-8">
+        ${currentPage > 1 ? `<button class="btn btn-secondary btn-sm" onclick="loadUsers(${currentPage-1})">← Anterior</button>` : ''}
+        <span class="text-sm text-muted" style="padding:6px 10px">Pág ${data.page} / ${data.pages}</span>
+        ${currentPage < data.pages ? `<button class="btn btn-secondary btn-sm" onclick="loadUsers(${currentPage+1})">Siguiente →</button>` : ''}
+      </div>
+    `;
+  }
+}
+
+// ─── User Detail Modal ─────────────────────────────────────────────────────────
+async function openUser(phone) {
+  const data = await api('/api/users/' + phone);
+  if (!data) return;
+
+  document.getElementById('modal-title').innerHTML = `
+    <div>
+      <div>${data.name || 'Sin nombre'} · <code style="font-size:12px;color:var(--text2)">${formatPhone(data.phone)}</code></div>
+      <div class="flex gap-8 mt-4">${leadBadge(data.lead_status)} <span class="text-sm text-muted">${timeAgo(data.last_interaction)}</span></div>
+    </div>`;
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="tabs mb-16">
+      <button class="tab active" onclick="switchTab('tab-info')">📋 Perfil</button>
+      <button class="tab" onclick="switchTab('tab-modules')">📚 Módulos</button>
+      <button class="tab" onclick="switchTab('tab-chat')">💬 Conversaciones</button>
+      <button class="tab" onclick="switchTab('tab-crm')">🎯 CRM</button>
+    </div>
+
+    <!-- Tab: Info -->
+    <div id="tab-info" class="tab-content active">
+      <div class="grid grid-2">
+        <div>
+          <div class="text-sm text-muted">Teléfono</div><div class="mt-4 mb-8"><strong>${data.phone}</strong></div>
+          <div class="text-sm text-muted">Nombre</div><div class="mt-4 mb-8"><strong>${data.name||'—'}</strong></div>
+          <div class="text-sm text-muted">Edad</div><div class="mt-4 mb-8">${data.age_range||'—'}</div>
+          <div class="text-sm text-muted">Educación</div><div class="mt-4 mb-8">${data.education_level||'—'}</div>
+        </div>
+        <div>
+          <div class="text-sm text-muted">Puntos totales</div><div class="mt-4 mb-8"><strong style="color:var(--accent);font-size:20px">🏆 ${data.total_points}</strong></div>
+          <div class="text-sm text-muted">Mensajes enviados</div><div class="mt-4 mb-8"><strong>💬 ${data.message_count}</strong></div>
+          <div class="text-sm text-muted">Diagnóstico</div><div class="mt-4 mb-8">${diagBadge(data.diagnostic_status, data.diagnostic_profile)}</div>
+          <div class="text-sm text-muted">Etapa actual</div><div class="mt-4 mb-8"><code style="color:var(--accent2)">${data.current_stage||'—'} / ${data.current_step||'—'}</code></div>
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="grid grid-2">
+        <div><div class="text-sm text-muted">Primer contacto</div><div class="mt-4">${fmtDate(data.first_seen)}</div></div>
+        <div><div class="text-sm text-muted">Última interacción</div><div class="mt-4">${fmtDate(data.last_interaction)}</div></div>
+      </div>
+    </div>
+
+    <!-- Tab: Modules -->
+    <div id="tab-modules" class="tab-content">
+      ${modCard('M1','El Dinero y Vos 💰','Emociones y creencias financieras',data.m1_status,data.m1_progress,data.m1_rating,'var(--m1)')}
+      ${modCard('M2','Orden Financiero 📊','Control de gastos y fugas',data.m2_status,data.m2_progress,data.m2_rating,'var(--m2)')}
+      ${modCard('M3','Metas y Crecimiento 🎯','Planificación y objetivos',data.m3_status,data.m3_progress,data.m3_rating,'var(--m3)')}
+    </div>
+
+    <!-- Tab: Chat -->
+    <div id="tab-chat" class="tab-content">
+      <div class="chat-wrap">
+        ${data.interactions.length === 0
+          ? '<div class="empty-state"><div class="icon">💬</div>Sin conversaciones registradas<br><span class="text-sm">Se registran automáticamente al conectar N8N</span></div>'
+          : data.interactions.map(i => `
+            <div style="display:flex;flex-direction:column;${i.direction==='out'?'align-items:flex-end':'align-items:flex-start'}">
+              <div class="chat-bubble chat-${i.direction}">
+                ${i.message ? escHtml(i.message) : '<em style="color:var(--text3)">—</em>'}
+                ${i.emotion ? `<span class="emotion-tag">${i.emotion}</span>` : ''}
+              </div>
+              <div class="chat-meta">${i.direction==='in'?'Usuario':'Bot'} · ${timeAgo(i.timestamp)} · ${i.stage||'—'}</div>
+            </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Tab: CRM -->
+    <div id="tab-crm" class="tab-content">
+      <div class="form-group">
+        <label>Estado del Lead</label>
+        <select id="edit-lead-status" class="filter-input" style="width:100%">
+          ${['nuevo','activo','caliente','cliente','inactivo'].map(s => `<option value="${s}" ${s===data.lead_status?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notas internas</label>
+        <textarea id="edit-lead-notes" class="filter-input" rows="4" placeholder="Notas sobre este usuario...">${data.lead_notes||''}</textarea>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveUserCRM('${data.phone}')">💾 Guardar cambios</button>
+    </div>
+  `;
+
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id)?.classList.add('active');
+  event.target.classList.add('active');
+}
+
+async function saveUserCRM(phone) {
+  const lead_status = document.getElementById('edit-lead-status').value;
+  const lead_notes = document.getElementById('edit-lead-notes').value;
+  const r = await api('/api/users/'+phone, { method:'PATCH', body:JSON.stringify({lead_status, lead_notes}) });
+  if (r?.ok) { toast('✅ Cambios guardados', 'success'); closeModal(); if (document.getElementById('f-search')) loadUsers(); }
+  else toast('❌ Error al guardar', 'error');
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').style.display = 'none';
+}
+
+// ─── Settings Actions ──────────────────────────────────────────────────────────
+async function saveSettings() {
+  const crm_name = document.getElementById('cfg-name').value;
+  const launch_date = document.getElementById('cfg-launch').value;
+  const r = await api('/api/settings', { method:'PATCH', body:JSON.stringify({crm_name, launch_date}) });
+  if (r?.ok) toast('✅ Configuración guardada', 'success');
+  else toast('❌ Error', 'error');
+}
+
+async function changePassword() {
+  const current = document.getElementById('pw-current').value;
+  const newPw = document.getElementById('pw-new').value;
+  if (!current || !newPw) { toast('Completá los campos', 'error'); return; }
+  const r = await api('/auth/change-password', { method:'POST', body:JSON.stringify({current_password:current, new_password:newPw}) });
+  if (r?.ok) { toast('✅ Contraseña cambiada', 'success'); document.getElementById('pw-current').value=''; document.getElementById('pw-new').value=''; }
+  else toast('❌ ' + (r?.error||'Error'), 'error');
+}
+
+function showAddUser() {
+  document.getElementById('modal-title').textContent = '+ Agregar miembro del equipo';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-group"><label>Nombre de usuario</label><input type="text" id="nu-username" class="filter-input" style="width:100%" placeholder="usuario"></div>
+    <div class="form-group"><label>Nombre para mostrar</label><input type="text" id="nu-display" class="filter-input" style="width:100%" placeholder="Nombre Apellido"></div>
+    <div class="form-group"><label>Contraseña</label><input type="password" id="nu-pass" class="filter-input" style="width:100%" placeholder="••••••••"></div>
+    <div class="form-group"><label>Rol</label>
+      <select id="nu-role" class="filter-input" style="width:100%">
+        <option value="viewer">Viewer (solo lectura)</option>
+        <option value="editor">Editor</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="addTeamMember()">Agregar</button>
+  `;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+async function addTeamMember() {
+  const username = document.getElementById('nu-username').value;
+  const display_name = document.getElementById('nu-display').value;
+  const password = document.getElementById('nu-pass').value;
+  const role = document.getElementById('nu-role').value;
+  const r = await api('/api/team', { method:'POST', body:JSON.stringify({username,password,display_name,role}) });
+  if (r?.ok) { toast('✅ Usuario creado', 'success'); closeModal(); views.config(); }
+  else toast('❌ ' + (r?.error||'Error'), 'error');
+}
+
+// ─── CSV Export ────────────────────────────────────────────────────────────────
+async function exportCSV() {
+  const data = await api('/api/users?limit=9999');
+  if (!data) return;
+  const headers = ['Teléfono','Nombre','Edad','Educación','Lead Status','M1 Status','M1 Progreso','M2 Status','M2 Progreso','M3 Status','M3 Progreso','Puntos','Mensajes','Diagnóstico','Perfil','Primer contacto','Última interacción'];
+  const rows = data.users.map(u => [u.phone,u.name||'',u.age_range||'',u.education_level||'',u.lead_status,u.m1_status,u.m1_progress,u.m2_status,u.m2_progress,u.m3_status,u.m3_progress,u.total_points,u.message_count,u.diagnostic_status,u.diagnostic_profile||'',u.first_seen,u.last_interaction]);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `esxai_usuarios_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  toast('✅ CSV descargado', 'success');
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+function kpiCard(label, value, sub, icon, color) {
+  return `<div class="kpi-card" style="--accent-color:${color}">
+    <div class="kpi-icon">${icon}</div>
+    <div class="kpi-label">${label}</div>
+    <div class="kpi-value">${value}</div>
+    <div class="kpi-sub">${sub}</div>
+  </div>`;
+}
+
+function moduleBar(label, active, done, color) {
+  return `<div class="flex items-center gap-8 mb-8">
+    <div style="width:160px;font-size:12px;color:var(--text2)">${label}</div>
+    <div class="flex gap-8 items-center flex-1">
+      <span class="badge" style="background:${color}22;color:${color};border:1px solid ${color}44">${active} cursando</span>
+      <span class="badge badge-completed">${done} completados</span>
+    </div>
+  </div>`;
+}
+
+function modCard(id, name, desc, status, progress, rating, color) {
+  return `<div class="card card-sm mb-8" style="border-left:3px solid ${color}">
+    <div class="flex justify-between items-center">
+      <div>
+        <strong>${id}: ${name}</strong>
+        <div class="text-sm text-muted mt-4">${desc}</div>
+      </div>
+      <div class="flex flex-col items-center" style="gap:4px">
+        <span class="badge badge-${status}">${statusLabel(status)}</span>
+        ${rating ? `<span style="font-size:12px">⭐ ${rating}/5</span>` : ''}
+      </div>
+    </div>
+    ${status !== 'locked' ? `<div class="mod-bar mt-8">
+      <div class="progress-track" style="flex:1"><div class="progress-fill" style="width:${progress}%;background:${color}"></div></div>
+      <span class="mod-pct">${progress}%</span>
+    </div>` : ''}
+  </div>`;
+}
+
+function leadBadge(s) { return `<span class="badge badge-${s||'nuevo'}">${(s||'nuevo').charAt(0).toUpperCase()+(s||'nuevo').slice(1)}</span>`; }
+function modBadge(label, status) {
+  const color = status==='completed'?'#22c55e':status==='in_progress'?'#6366f1':'#334155';
+  return `<span style="font-size:10px;padding:1px 5px;border-radius:4px;background:${color}22;color:${color};border:1px solid ${color}44">${label}</span>`;
+}
+function modStatusDot(s) {
+  const c = s==='completed'?'#22c55e':s==='in_progress'?'#6366f1':'#334155';
+  return `<div style="width:7px;height:7px;border-radius:50%;background:${c};flex-shrink:0"></div>`;
+}
+function statusLabel(s) { return {locked:'Bloqueado',in_progress:'En progreso',completed:'Completado',not_started:'No iniciado'}[s]||s; }
+function diagBadge(status, profile) {
+  if (status==='completed') return `<span class="badge badge-completed">✅ ${profile||'—'}</span>`;
+  if (status==='in_progress') return `<span class="badge badge-in_progress">En progreso</span>`;
+  return `<span class="badge badge-locked">No iniciado</span>`;
+}
+
+function formatPhone(p) { return p ? p.replace(/^549?/, '+549 ').replace(/(\d{4})(\d{4})$/, '$1-$2') : '—'; }
+function truncate(str, n) { return str && str.length > n ? str.slice(0,n)+'…' : (str||''); }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDate(d) { return d ? new Date(d).toLocaleString('es-AR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'; }
+function timeAgo(d) {
+  if (!d) return '—';
+  const diff = Date.now() - new Date(d).getTime();
+  const m = Math.floor(diff/60000);
+  if (m < 1) return 'ahora';
+  if (m < 60) return `hace ${m}m`;
+  const h = Math.floor(m/60);
+  if (h < 24) return `hace ${h}h`;
+  const days = Math.floor(h/24);
+  return `hace ${days}d`;
+}
+
+function copyText(text, msg) {
+  navigator.clipboard.writeText(text).then(() => toast('📋 ' + msg, 'success'));
+}
+
+function copyN8NCode(url, secret) {
+  const code = `Nodo: HTTP Request
+Method: POST
+URL: ${url}
+Header: x-webhook-secret = ${secret}
+
+Body (JSON):
+{
+  "phone": "{{ $('Body').first().json.phone }}",
+  "user": {{ JSON.stringify($('Update State').first().json.user) }},
+  "msg": "{{ $('Body').first().json.msg }}",
+  "response": "{{ $('Update State').first().json.response }}",
+  "detected_emotion": "{{ $('Update State').first().json.llmResponse?.detected_emotion }}"
+}`;
+  navigator.clipboard.writeText(code).then(() => toast('📋 Configuración copiada', 'success'));
+}
+
+// Charts
+function renderChart(id, type, labels, data, colors, label) {
+  const ctx = document.getElementById(id)?.getContext('2d');
+  if (!ctx) return;
+  if (charts[id]) charts[id].destroy();
+  Chart.defaults.color = '#94a3b8';
+  Chart.defaults.borderColor = '#334155';
+  charts[id] = new Chart(ctx, {
+    type,
+    data: {
+      labels,
+      datasets: [{
+        label,
+        data,
+        backgroundColor: Array.isArray(colors) ? colors.map(c=>c+'99') : colors+'44',
+        borderColor: Array.isArray(colors) ? colors : colors,
+        borderWidth: type==='doughnut'?0:1.5,
+        borderRadius: type==='bar'?4:0,
+        fill: type==='line',
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend: { display: type==='doughnut', position:'right', labels:{color:'#94a3b8',boxWidth:12,font:{size:11}} },
+        tooltip: { backgroundColor:'#1e293b', borderColor:'#334155', borderWidth:1, titleColor:'#f1f5f9', bodyColor:'#94a3b8' }
+      },
+      scales: type!=='doughnut' ? {
+        x:{grid:{color:'#ffffff08'},ticks:{color:'#64748b',font:{size:10}}},
+        y:{grid:{color:'#ffffff08'},ticks:{color:'#64748b',font:{size:10}},beginAtZero:true}
+      } : {}
+    }
+  });
+}
+
+// Toast
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast toast-${type} show`;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// Debounce
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────────────
+if (TOKEN) showApp();
+</script>
+</body>
+</html>
