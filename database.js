@@ -100,6 +100,11 @@ const db = {
     if (filters.module === 'm1') users = users.filter(u => u.m1_status !== 'locked');
     if (filters.module === 'm2') users = users.filter(u => u.m2_status !== 'locked');
     if (filters.module === 'm3') users = users.filter(u => u.m3_status !== 'locked');
+    // Date range filters (ISO date strings YYYY-MM-DD)
+    if (filters.date_from) users = users.filter(u => (u.last_interaction||'') >= filters.date_from);
+    if (filters.date_to)   users = users.filter(u => (u.last_interaction||'') <= filters.date_to + 'T23:59:59.999Z');
+    if (filters.first_seen_from) users = users.filter(u => (u.first_seen||'') >= filters.first_seen_from);
+    if (filters.first_seen_to)   users = users.filter(u => (u.first_seen||'') <= filters.first_seen_to + 'T23:59:59.999Z');
 
     const sortMap = { last_interaction:'last_interaction', first_seen:'first_seen', total_points:'total_points', message_count:'message_count', name:'name' };
     const sortKey = sortMap[filters.sort] || 'last_interaction';
@@ -130,6 +135,20 @@ const db = {
     if (!_db.users[phone]) return;
     _db.users[phone] = { ..._db.users[phone], ...updates };
     save(_db);
+  },
+
+  deleteUser(phone) {
+    if (!_db.users[phone]) return false;
+    delete _db.users[phone];
+    save(_db);
+    return true;
+  },
+
+  deleteUsers(phones) {
+    let deleted = 0;
+    phones.forEach(p => { if (_db.users[p]) { delete _db.users[p]; deleted++; } });
+    if (deleted > 0) save(_db);
+    return deleted;
   },
 
   // --- Interactions ---

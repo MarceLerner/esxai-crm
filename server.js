@@ -140,6 +140,22 @@ app.patch('/api/users/:phone', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+app.delete('/api/users/:phone', requireAuth, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Sin permisos' });
+  const deleted = db.deleteUser(req.params.phone);
+  if (!deleted) return res.status(404).json({ error: 'Usuario no encontrado' });
+  res.json({ ok: true });
+});
+
+app.post('/api/users/bulk-delete', requireAuth, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Sin permisos' });
+  const { phones } = req.body;
+  if (!phones || !Array.isArray(phones) || phones.length === 0)
+    return res.status(400).json({ error: 'Falta array phones' });
+  const deleted = db.deleteUsers(phones);
+  res.json({ ok: true, deleted });
+});
+
 // ─── Pipeline ─────────────────────────────────────────────────────────────────
 app.get('/api/pipeline', requireAuth, (req, res) => res.json(db.getPipeline()));
 

@@ -37,6 +37,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .btn-secondary:hover{background:var(--border)}
 .btn-danger{background:var(--danger);color:#fff}
 .btn-sm{padding:6px 12px;font-size:12px}
+.btn-danger{background:#ef4444;color:#fff;border:none}
+.btn-danger:hover{background:#dc2626}
 .btn-full{width:100%;justify-content:center}
 .error-msg{color:var(--danger);font-size:13px;margin-top:8px}
 
@@ -379,7 +381,10 @@ const views = {
     mc.innerHTML = `
       <div class="flex justify-between items-center mb-16">
         <div class="section-title">👥 Usuarios del Bot</div>
-        <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇️ Exportar CSV</button>
+        <div class="flex gap-8">
+          <button class="btn btn-danger btn-sm" id="btn-bulk-delete" style="display:none" onclick="bulkDeleteSelected()">🗑️ Borrar seleccionados</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇️ Exportar CSV</button>
+        </div>
       </div>
       <div class="filters">
         <input class="filter-input" id="f-search" placeholder="🔍 Buscar nombre o teléfono..." oninput="debounce(loadUsers, 400)()" style="min-width:240px">
@@ -397,6 +402,17 @@ const views = {
           <option value="m2">En M2</option>
           <option value="m3">En M3</option>
         </select>
+        <select class="filter-input" id="f-period" onchange="applyPeriodFilter()">
+          <option value="">Todos los períodos</option>
+          <option value="today">Hoy</option>
+          <option value="week">Esta semana</option>
+          <option value="month">Este mes</option>
+          <option value="custom">Personalizado...</option>
+        </select>
+        <div id="f-custom-dates" style="display:none;gap:6px" class="flex">
+          <input type="date" class="filter-input" id="f-date-from" onchange="loadUsers()" style="min-width:0;width:130px" placeholder="Desde">
+          <input type="date" class="filter-input" id="f-date-to" onchange="loadUsers()" style="min-width:0;width:130px" placeholder="Hasta">
+        </div>
       </div>
       <div class="card" style="padding:0">
         <div id="users-table-wrap" class="table-wrap">
@@ -490,10 +506,9 @@ const views = {
             Header: x-webhook-secret: ${settings.webhook_secret}<br>
             Body (JSON):<br>
             &nbsp;phone: {{ $('Body').first().json.phone }}<br>
-            &nbsp;user: {{ JSON.stringify($('Update State').first().json.user) }}<br>
+            &nbsp;user: {{ JSON.stringify($('Base Prompt / GEMINI v6.6').first().json.user) }}<br>
             &nbsp;msg: {{ $('Body').first().json.msg }}<br>
-            &nbsp;response: {{ $('Update State').first().json.response }}<br>
-            &nbsp;detected_emotion: {{ $('Update State').first().json.llmResponse.detected_emotion }}
+            &nbsp;response: {{ $json.response }}
           </div>
           <button class="btn btn-secondary btn-sm mt-8" onclick="copyN8NCode('${settings.webhook_url}','${settings.webhook_secret}')">📋 Copiar configuración</button>
         </div>
@@ -554,29 +569,89 @@ const views = {
 
 // ─── Users Table ───────────────────────────────────────────────────────────────
 let currentPage = 1;
+function applyPeriodFilter() {
+  const period = document.getElementById('f-period')?.value || '';
+  const customDiv = document.getElementById('f-custom-dates');
+  const dateFrom = document.getElementById('f-date-from');
+  const dateTo = document.getElementById('f-date-to');
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const toDate = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  if (period === 'custom') {
+    customDiv.style.display = 'flex';
+    return;
+  }
+  customDiv.style.display = 'none';
+  if (period === 'today') {
+    const today = toDate(now); dateFrom.value = today; dateTo.value = today;
+  } else if (period === 'week') {
+    const mon = new Date(now); mon.setDate(now.getDate() - now.getDay() + (now.getDay()===0?-6:1));
+    dateFrom.value = toDate(mon); dateTo.value = toDate(now);
+  } else if (period === 'month') {
+    dateFrom.value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-01`;
+    dateTo.value = toDate(now);
+  } else {
+    dateFrom.value = ''; dateTo.value = '';
+  }
+  loadUsers(1);
+}
+
+async function deleteUser(phone, name, event) {
+  event.stopPropagation();
+  if (!confirm(`¿Borrar a ${name || phone}? Esta acción no se puede deshacer.`)) return;
+  const r = await api('/api/users/' + phone, { method:'DELETE' });
+  if (r?.ok) { toast('🗑️ Usuario eliminado', 'success'); loadUsers(); }
+}
+
+let selectedUsers = new Set();
+function toggleSelect(phone, cb) {
+  if (cb.checked) selectedUsers.add(phone); else selectedUsers.delete(phone);
+  const btn = document.getElementById('btn-bulk-delete');
+  if (btn) btn.style.display = selectedUsers.size > 0 ? 'inline-flex' : 'none';
+}
+
+async function bulkDeleteSelected() {
+  if (selectedUsers.size === 0) return;
+  if (!confirm(`¿Borrar ${selectedUsers.size} usuario(s)? Esta acción no se puede deshacer.`)) return;
+  const r = await api('/api/users/bulk-delete', { method:'POST', body: JSON.stringify({ phones: [...selectedUsers] }) });
+  if (r?.ok) { toast(`🗑️ ${r.deleted} usuario(s) eliminado(s)`, 'success'); selectedUsers.clear(); loadUsers(); }
+}
+
 async function loadUsers(page) {
   if (page) currentPage = page;
   const search = document.getElementById('f-search')?.value || '';
   const lead = document.getElementById('f-lead')?.value || '';
   const mod = document.getElementById('f-mod')?.value || '';
+  const dateFrom = document.getElementById('f-date-from')?.value || '';
+  const dateTo = document.getElementById('f-date-to')?.value || '';
   const params = new URLSearchParams({ search, lead_status: lead, module: mod, page: currentPage, limit: 50 });
+  if (dateFrom) params.set('date_from', dateFrom);
+  if (dateTo) params.set('date_to', dateTo);
   const data = await api('/api/users?' + params);
   if (!data) return;
 
   const wrap = document.getElementById('users-table-wrap');
   if (!wrap) return;
+  selectedUsers.clear();
+  const btn = document.getElementById('btn-bulk-delete');
+  if (btn) btn.style.display = 'none';
+
+  const isAdmin = TOKEN && JSON.parse(atob(TOKEN.split('.')[1])).role === 'admin';
 
   if (data.users.length === 0) {
     wrap.innerHTML = '<div class="empty-state"><div class="icon">👥</div>No se encontraron usuarios</div>';
   } else {
     wrap.innerHTML = `<table>
       <thead><tr>
+        ${isAdmin ? '<th style="width:32px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll(\'.chk-user\').forEach(c=>{c.checked=this.checked;toggleSelect(c.dataset.phone,c)})"></th>' : ''}
         <th>Nombre</th><th>Teléfono</th><th>Estado Lead</th>
         <th>Módulos</th><th>Puntos</th><th>Mensajes</th><th>Última interacción</th>
+        ${isAdmin ? '<th></th>' : ''}
       </tr></thead>
       <tbody>
         ${data.users.map(u => `
           <tr class="clickable-row" onclick="openUser('${u.phone}')">
+            ${isAdmin ? `<td onclick="event.stopPropagation()"><input type="checkbox" class="chk-user" data-phone="${u.phone}" onchange="toggleSelect('${u.phone}',this)"></td>` : ''}
             <td><strong>${u.name||'Sin nombre'}</strong><br><span class="text-sm text-muted">${u.age_range||'—'} · ${u.education_level||'—'}</span></td>
             <td class="text-sm text-muted">${formatPhone(u.phone)}</td>
             <td>${leadBadge(u.lead_status)}</td>
@@ -588,6 +663,7 @@ async function loadUsers(page) {
             <td><strong style="color:var(--accent)">${u.total_points}</strong></td>
             <td>${u.message_count}</td>
             <td class="text-sm text-muted">${timeAgo(u.last_interaction)}</td>
+            ${isAdmin ? `<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm" onclick="deleteUser('${u.phone}','${(u.name||'').replace(/'/g,'\\\'').replace(/"/g,'&quot;')}',event)" title="Borrar">🗑️</button></td>` : ''}
           </tr>`).join('')}
       </tbody>
     </table>`;
@@ -852,10 +928,9 @@ Header: x-webhook-secret = ${secret}
 Body (JSON):
 {
   "phone": "{{ $('Body').first().json.phone }}",
-  "user": {{ JSON.stringify($('Update State').first().json.user) }},
+  "user": {{ JSON.stringify($('Base Prompt / GEMINI v6.6').first().json.user) }},
   "msg": "{{ $('Body').first().json.msg }}",
-  "response": "{{ $('Update State').first().json.response }}",
-  "detected_emotion": "{{ $('Update State').first().json.llmResponse?.detected_emotion }}"
+  "response": "{{ $json.response }}"
 }`;
   navigator.clipboard.writeText(code).then(() => toast('📋 Configuración copiada', 'success'));
 }
