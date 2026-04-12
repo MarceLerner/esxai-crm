@@ -37,8 +37,6 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .btn-secondary:hover{background:var(--border)}
 .btn-danger{background:var(--danger);color:#fff}
 .btn-sm{padding:6px 12px;font-size:12px}
-.btn-danger{background:#ef4444;color:#fff;border:none}
-.btn-danger:hover{background:#dc2626}
 .btn-full{width:100%;justify-content:center}
 .error-msg{color:var(--danger);font-size:13px;margin-top:8px}
 
@@ -165,7 +163,7 @@ select.filter-input option{background:var(--surface)}
 .mt-4{margin-top:4px}.mt-8{margin-top:8px}.mt-16{margin-top:16px}.mt-24{margin-top:24px}
 .mb-8{margin-bottom:8px}.mb-16{margin-bottom:16px}
 .flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-between{justify-content:space-between}.gap-8{gap:8px}.gap-12{gap:12px}
-.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowraw;max-width:180px}
 .divider{border:none;border-top:1px solid var(--border);margin:16px 0}
 .live-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -311,51 +309,66 @@ const views = {
     const launchDateStr = m.launchDate ? new Date(m.launchDate).toLocaleDateString('es-AR',{day:'numeric',month:'short'}) : '—';
 
     mc.innerHTML = `
-      <div class="section-title">📈 Dashboard <span class="text-sm text-muted" style="font-weight:400">Último lanzamiento: ${launchDateStr}</span></div>
-
-      <div class="grid grid-5 mb-16">
-        ${kpiCard('Total Usuarios', m.total, `${m.fromLaunch} desde lanzamiento`, '👥', '#6366f1')}
-        ${kpiCard('Activos Hoy', m.activeToday, `${m.activeWeek} esta semana`, '🔥', '#f59e0b')}
-        ${kpiCard('Mensajes Hoy', m.msgsToday, 'interacciones del bot', '💬', '#0ea5e9')}
-        ${kpiCard('Clientes', m.clients, `desde el lanzamiento`, '⭐', '#14b8a6')}
-        ${kpiCard('Pts Promedio', m.avgPoints, 'por usuario activo', '🏆', '#22c55e')}
+      <div class="flex items-center justify-between mb-12">
+        <div class="section-title" style="margin:0">📈 Dashboard</div>
+        <span class="text-sm text-muted">Lanzamiento: ${launchDateStr}</span>
       </div>
 
-      <div class="grid grid-2 mb-16">
-        <div class="card">
-          <div class="section-title" style="font-size:14px">📅 Nuevos Usuarios (últimos 14 días)</div>
-          <canvas id="chart-daily" height="160"></canvas>
-        </div>
-        <div class="card">
-          <div class="section-title" style="font-size:14px">🎯 Pipeline de Leads</div>
-          <canvas id="chart-pipeline" height="160"></canvas>
-        </div>
+      <!-- KPIs compactos -->
+      <div class="grid grid-5" style="gap:10px;margin-bottom:12px">
+        ${kpiCardSm('Total Usuarios', m.total, `${m.fromLaunch} desde lanzamiento`, '👥', '#6366f1')}
+        ${kpiCardSm('Activos Hoy', m.activeToday, `${m.activeWeek} esta semana`, '🔥', '#f59e0b')}
+        ${kpiCardSm('Mensajes Hoy', m.msgsToday, 'interacciones del bot', '💬', '#0ea5e9')}
+        ${kpiCardSm('Clientes', m.clients, 'desde el lanzamiento', '⭐', '#14b8a6')}
+        ${kpiCardSm('Pts Promedio', m.avgPoints, 'por usuario activo', '🏆', '#22c55e')}
       </div>
 
-      <div class="grid grid-2">
-        <div class="card">
-          <div class="section-title" style="font-size:14px">📚 Progreso en Módulos</div>
-          ${moduleBar('M1: El Dinero y Vos', m.modules.m1Active, m.modules.m1Done, '#6366f1')}
-          ${moduleBar('M2: Orden Financiero', m.modules.m2Active, m.modules.m2Done, '#f59e0b')}
-          ${moduleBar('M3: Metas y Crecimiento', m.modules.m3Active, m.modules.m3Done, '#22c55e')}
-        </div>
-        <div class="card">
-          <div class="section-title" style="font-size:14px">⚡ Actividad Reciente</div>
-          <div style="max-height:280px;overflow-y:auto">
-            ${m.recent.slice(0,10).map(r => `
-              <div class="activity-item">
-                <div class="activity-dot" style="background:${r.direction==='in'?'#60a5fa':'#4ade80'}"></div>
-                <div>
-                  <div class="activity-text">
-                    <strong>${r.name || formatPhone(r.user_phone)}</strong>
-                    ${r.direction==='in'?'→':'←'}
-                    "${truncate(r.message||'—', 50)}"
-                    ${r.emotion ? `<span class="emotion-tag">${r.emotion}</span>` : ''}
-                  </div>
-                  <div class="activity-time">${timeAgo(r.timestamp)} · ${r.stage||'—'}</div>
-                </div>
-              </div>`).join('') || '<div class="empty-state"><div class="icon">💤</div>Sin actividad reciente</div>'}
+      <!-- Charts + Módulos en 3 columnas -->
+      <div style="display:grid;grid-template-columns:2fr 1fr 1.4fr;gap:12px;margin-bottom:12px">
+        <div class="card" style="padding:14px 16px">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">📅 Nuevos Usuarios (14 días)</div>
+          <div style="height:150px;position:relative">
+            <canvas id="chart-daily"></canvas>
           </div>
+        </div>
+        <div class="card" style="padding:14px 16px">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">🎯 Pipeline</div>
+          <div style="height:150px;position:relative">
+            <canvas id="chart-pipeline"></canvas>
+          </div>
+        </div>
+        <div class="card" style="padding:14px 16px">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">📚 Progreso Módulos</div>
+          ${moduleBarSm('M1: El Dinero y Vos', m.modules.m1Active, m.modules.m1Done, '#6366f1')}
+          ${moduleBarSm('M2: Orden Financiero', m.modules.m2Active, m.modules.m2Done, '#f59e0b')}
+          ${moduleBarSm('M3: Metas y Crecimiento', m.modules.m3Active, m.modules.m3Done, '#22c55e')}
+          <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:20px;font-weight:800;color:#6366f1">${m.modules.m1Active + m.modules.m1Done}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">alcanzaron M1</div>
+            </div>
+            <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:20px;font-weight:800;color:#22c55e">${m.modules.m2Done + m.modules.m3Active + m.modules.m3Done}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">completaron M2+</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actividad reciente -->
+      <div class="card" style="padding:14px 16px">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">⚡ Actividad Reciente</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:6px;max-height:130px;overflow-y:auto">
+          ${m.recent.slice(0,12).map(r => `
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface2);border-radius:6px">
+              <div style="width:6px;height:6px;border-radius:50%;flex-shrink:0;background:${r.direction==='in'?'#60a5fa':'#4ade80'}"></div>
+              <div style="overflow:hidden;flex:1">
+                <span style="font-size:12px;font-weight:600">${r.name || formatPhone(r.user_phone)}</span>
+                <span style="font-size:11px;color:var(--text3);margin-left:6px">${truncate(r.message||'—', 35)}</span>
+              </div>
+              <span style="font-size:10px;color:var(--text3);flex-shrink:0">${timeAgo(r.timestamp)}</span>
+            </div>`).join('') || '<div style="color:var(--text3);font-size:12px;padding:12px;text-align:center">💤 Sin actividad reciente</div>'}
         </div>
       </div>
     `;
@@ -381,10 +394,7 @@ const views = {
     mc.innerHTML = `
       <div class="flex justify-between items-center mb-16">
         <div class="section-title">👥 Usuarios del Bot</div>
-        <div class="flex gap-8">
-          <button class="btn btn-danger btn-sm" id="btn-bulk-delete" style="display:none" onclick="bulkDeleteSelected()">🗑️ Borrar seleccionados</button>
-          <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇️ Exportar CSV</button>
-        </div>
+        <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇️ Exportar CSV</button>
       </div>
       <div class="filters">
         <input class="filter-input" id="f-search" placeholder="🔍 Buscar nombre o teléfono..." oninput="debounce(loadUsers, 400)()" style="min-width:240px">
@@ -402,17 +412,6 @@ const views = {
           <option value="m2">En M2</option>
           <option value="m3">En M3</option>
         </select>
-        <select class="filter-input" id="f-period" onchange="applyPeriodFilter()">
-          <option value="">Todos los períodos</option>
-          <option value="today">Hoy</option>
-          <option value="week">Esta semana</option>
-          <option value="month">Este mes</option>
-          <option value="custom">Personalizado...</option>
-        </select>
-        <div id="f-custom-dates" style="display:none;gap:6px" class="flex">
-          <input type="date" class="filter-input" id="f-date-from" onchange="loadUsers()" style="min-width:0;width:130px" placeholder="Desde">
-          <input type="date" class="filter-input" id="f-date-to" onchange="loadUsers()" style="min-width:0;width:130px" placeholder="Hasta">
-        </div>
       </div>
       <div class="card" style="padding:0">
         <div id="users-table-wrap" class="table-wrap">
@@ -506,9 +505,10 @@ const views = {
             Header: x-webhook-secret: ${settings.webhook_secret}<br>
             Body (JSON):<br>
             &nbsp;phone: {{ $('Body').first().json.phone }}<br>
-            &nbsp;user: {{ JSON.stringify($('Base Prompt / GEMINI v6.6').first().json.user) }}<br>
+            &nbsp;user: {{ JSON.stringify($('Update State').first().json.user) }}<br>
             &nbsp;msg: {{ $('Body').first().json.msg }}<br>
-            &nbsp;response: {{ $json.response }}
+            &nbsp;response: {{ $('Update State').first().json.response }}<br>
+            &nbsp;detected_emotion: {{ $('Update State').first().json.llmResponse.detected_emotion }}
           </div>
           <button class="btn btn-secondary btn-sm mt-8" onclick="copyN8NCode('${settings.webhook_url}','${settings.webhook_secret}')">📋 Copiar configuración</button>
         </div>
@@ -569,89 +569,29 @@ const views = {
 
 // ─── Users Table ───────────────────────────────────────────────────────────────
 let currentPage = 1;
-function applyPeriodFilter() {
-  const period = document.getElementById('f-period')?.value || '';
-  const customDiv = document.getElementById('f-custom-dates');
-  const dateFrom = document.getElementById('f-date-from');
-  const dateTo = document.getElementById('f-date-to');
-  const now = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const toDate = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  if (period === 'custom') {
-    customDiv.style.display = 'flex';
-    return;
-  }
-  customDiv.style.display = 'none';
-  if (period === 'today') {
-    const today = toDate(now); dateFrom.value = today; dateTo.value = today;
-  } else if (period === 'week') {
-    const mon = new Date(now); mon.setDate(now.getDate() - now.getDay() + (now.getDay()===0?-6:1));
-    dateFrom.value = toDate(mon); dateTo.value = toDate(now);
-  } else if (period === 'month') {
-    dateFrom.value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-01`;
-    dateTo.value = toDate(now);
-  } else {
-    dateFrom.value = ''; dateTo.value = '';
-  }
-  loadUsers(1);
-}
-
-async function deleteUser(phone, name, event) {
-  event.stopPropagation();
-  if (!confirm(`¿Borrar a ${name || phone}? Esta acción no se puede deshacer.`)) return;
-  const r = await api('/api/users/' + phone, { method:'DELETE' });
-  if (r?.ok) { toast('🗑️ Usuario eliminado', 'success'); loadUsers(); }
-}
-
-let selectedUsers = new Set();
-function toggleSelect(phone, cb) {
-  if (cb.checked) selectedUsers.add(phone); else selectedUsers.delete(phone);
-  const btn = document.getElementById('btn-bulk-delete');
-  if (btn) btn.style.display = selectedUsers.size > 0 ? 'inline-flex' : 'none';
-}
-
-async function bulkDeleteSelected() {
-  if (selectedUsers.size === 0) return;
-  if (!confirm(`¿Borrar ${selectedUsers.size} usuario(s)? Esta acción no se puede deshacer.`)) return;
-  const r = await api('/api/users/bulk-delete', { method:'POST', body: JSON.stringify({ phones: [...selectedUsers] }) });
-  if (r?.ok) { toast(`🗑️ ${r.deleted} usuario(s) eliminado(s)`, 'success'); selectedUsers.clear(); loadUsers(); }
-}
-
 async function loadUsers(page) {
   if (page) currentPage = page;
   const search = document.getElementById('f-search')?.value || '';
   const lead = document.getElementById('f-lead')?.value || '';
   const mod = document.getElementById('f-mod')?.value || '';
-  const dateFrom = document.getElementById('f-date-from')?.value || '';
-  const dateTo = document.getElementById('f-date-to')?.value || '';
   const params = new URLSearchParams({ search, lead_status: lead, module: mod, page: currentPage, limit: 50 });
-  if (dateFrom) params.set('date_from', dateFrom);
-  if (dateTo) params.set('date_to', dateTo);
   const data = await api('/api/users?' + params);
   if (!data) return;
 
   const wrap = document.getElementById('users-table-wrap');
   if (!wrap) return;
-  selectedUsers.clear();
-  const btn = document.getElementById('btn-bulk-delete');
-  if (btn) btn.style.display = 'none';
-
-  const isAdmin = TOKEN && JSON.parse(atob(TOKEN.split('.')[1])).role === 'admin';
 
   if (data.users.length === 0) {
     wrap.innerHTML = '<div class="empty-state"><div class="icon">👥</div>No se encontraron usuarios</div>';
   } else {
     wrap.innerHTML = `<table>
       <thead><tr>
-        ${isAdmin ? '<th style="width:32px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll(\'.chk-user\').forEach(c=>{c.checked=this.checked;toggleSelect(c.dataset.phone,c)})"></th>' : ''}
         <th>Nombre</th><th>Teléfono</th><th>Estado Lead</th>
         <th>Módulos</th><th>Puntos</th><th>Mensajes</th><th>Última interacción</th>
-        ${isAdmin ? '<th></th>' : ''}
       </tr></thead>
       <tbody>
         ${data.users.map(u => `
           <tr class="clickable-row" onclick="openUser('${u.phone}')">
-            ${isAdmin ? `<td onclick="event.stopPropagation()"><input type="checkbox" class="chk-user" data-phone="${u.phone}" onchange="toggleSelect('${u.phone}',this)"></td>` : ''}
             <td><strong>${u.name||'Sin nombre'}</strong><br><span class="text-sm text-muted">${u.age_range||'—'} · ${u.education_level||'—'}</span></td>
             <td class="text-sm text-muted">${formatPhone(u.phone)}</td>
             <td>${leadBadge(u.lead_status)}</td>
@@ -663,7 +603,6 @@ async function loadUsers(page) {
             <td><strong style="color:var(--accent)">${u.total_points}</strong></td>
             <td>${u.message_count}</td>
             <td class="text-sm text-muted">${timeAgo(u.last_interaction)}</td>
-            ${isAdmin ? `<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm" onclick="deleteUser('${u.phone}','${(u.name||'').replace(/'/g,'\\\'').replace(/"/g,'&quot;')}',event)" title="Borrar">🗑️</button></td>` : ''}
           </tr>`).join('')}
       </tbody>
     </table>`;
@@ -726,7 +665,7 @@ async function openUser(phone) {
 
     <!-- Tab: Modules -->
     <div id="tab-modules" class="tab-content">
-      ${modCard('M1','El Dinero y Vos 💰','Emociones y creencias financieras',data.m1_status,data.m1_progress,data.m1_rating,'var(--m1)')}
+      ${modCard('M1','El Dinero y Vos 💰','Emociones y creencias financieras',data.m1_status,data.m1_progress,data.m1_rating,"var(--m1)')}
       ${modCard('M2','Orden Financiero 📊','Control de gastos y fugas',data.m2_status,data.m2_progress,data.m2_rating,'var(--m2)')}
       ${modCard('M3','Metas y Crecimiento 🎯','Planificación y objetivos',data.m3_status,data.m3_progress,data.m3_rating,'var(--m3)')}
     </div>
@@ -854,12 +793,35 @@ function kpiCard(label, value, sub, icon, color) {
   </div>`;
 }
 
+function kpiCardSm(label, value, sub, icon, color) {
+  return `<div class="kpi-card" style="--accent-color:${color};padding:14px 16px">
+    <div style="position:absolute;right:12px;top:12px;font-size:22px;opacity:.25">${icon}</div>
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);font-weight:600">${label}</div>
+    <div style="font-size:26px;font-weight:800;margin:4px 0;color:var(--text)">${value}</div>
+    <div style="font-size:11px;color:var(--text2)">${sub}</div>
+  </div>`;
+}
+
 function moduleBar(label, active, done, color) {
   return `<div class="flex items-center gap-8 mb-8">
     <div style="width:160px;font-size:12px;color:var(--text2)">${label}</div>
     <div class="flex gap-8 items-center flex-1">
       <span class="badge" style="background:${color}22;color:${color};border:1px solid ${color}44">${active} cursando</span>
       <span class="badge badge-completed">${done} completados</span>
+    </div>
+  </div>`;
+}
+
+function moduleBarSm(label, active, done, color) {
+  const total = active + done;
+  return `<div style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="font-size:11px;color:var(--text2)">${label}</span>
+      <span style="font-size:10px;color:var(--text3)">${active} activos · ${done} completados</span>
+    </div>
+    <div style="display:flex;gap:3px">
+      ${done > 0 ? `<div style="height:5px;border-radius:3px;background:${color};flex:${done}" title="${done} completados"></div>` : ''}
+      ${active > 0 ? `<div style="height:5px;border-radius:3px;background:${color}66;flex:${active}" title="${active} en progreso"></div>` : ''}
     </div>
   </div>`;
 }
@@ -883,7 +845,7 @@ function modCard(id, name, desc, status, progress, rating, color) {
   </div>`;
 }
 
-function leadBadge(s) { return `<span class="badge badge-${s||'nuevo'}">${(s||'nuevo').charAt(0).toUpperCase()+(s||'nuevo').slice(1)}</span>`; }
+function leadBadge(s) { return `<span class="badge badge-${s||'nuevo'}">${hs||'nuevo').charAt(0).toUpperCase()+(s||'nuevo').slice(1)}</span>`; }
 function modBadge(label, status) {
   const color = status==='completed'?'#22c55e':status==='in_progress'?'#6366f1':'#334155';
   return `<span style="font-size:10px;padding:1px 5px;border-radius:4px;background:${color}22;color:${color};border:1px solid ${color}44">${label}</span>`;
@@ -928,9 +890,10 @@ Header: x-webhook-secret = ${secret}
 Body (JSON):
 {
   "phone": "{{ $('Body').first().json.phone }}",
-  "user": {{ JSON.stringify($('Base Prompt / GEMINI v6.6').first().json.user) }},
+  "user": {{ JSON.stringify($('Update State').first().json.user) }},
   "msg": "{{ $('Body').first().json.msg }}",
-  "response": "{{ $json.response }}"
+  "response": "{{ $('Update State').first().json.response }}",
+  "detected_emotion": "{{ $('Update State').first().json.llmResponse?.detected_emotion }}"
 }`;
   navigator.clipboard.writeText(code).then(() => toast('📋 Configuración copiada', 'success'));
 }
