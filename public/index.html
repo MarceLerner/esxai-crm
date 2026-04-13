@@ -163,7 +163,7 @@ select.filter-input option{background:var(--surface)}
 .mt-4{margin-top:4px}.mt-8{margin-top:8px}.mt-16{margin-top:16px}.mt-24{margin-top:24px}
 .mb-8{margin-bottom:8px}.mb-16{margin-bottom:16px}
 .flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-between{justify-content:space-between}.gap-8{gap:8px}.gap-12{gap:12px}
-.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowraw;max-width:180px}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}
 .divider{border:none;border-top:1px solid var(--border);margin:16px 0}
 .live-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -665,7 +665,7 @@ async function openUser(phone) {
 
     <!-- Tab: Modules -->
     <div id="tab-modules" class="tab-content">
-      ${modCard('M1','El Dinero y Vos 💰','Emociones y creencias financieras',data.m1_status,data.m1_progress,data.m1_rating,"var(--m1)')}
+      ${modCard('M1','El Dinero y Vos 💰','Emociones y creencias financieras',data.m1_status,data.m1_progress,data.m1_rating,'var(--m1)')}
       ${modCard('M2','Orden Financiero 📊','Control de gastos y fugas',data.m2_status,data.m2_progress,data.m2_rating,'var(--m2)')}
       ${modCard('M3','Metas y Crecimiento 🎯','Planificación y objetivos',data.m3_status,data.m3_progress,data.m3_rating,'var(--m3)')}
     </div>
@@ -845,7 +845,7 @@ function modCard(id, name, desc, status, progress, rating, color) {
   </div>`;
 }
 
-function leadBadge(s) { return `<span class="badge badge-${s||'nuevo'}">${hs||'nuevo').charAt(0).toUpperCase()+(s||'nuevo').slice(1)}</span>`; }
+function leadBadge(s) { return `<span class="badge badge-${s||'nuevo'}">${(s||'nuevo').charAt(0).toUpperCase()+(s||'nuevo').slice(1)}</span>`; }
 function modBadge(label, status) {
   const color = status==='completed'?'#22c55e':status==='in_progress'?'#6366f1':'#334155';
   return `<span style="font-size:10px;padding:1px 5px;border-radius:4px;background:${color}22;color:${color};border:1px solid ${color}44">${label}</span>`;
