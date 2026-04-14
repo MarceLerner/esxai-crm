@@ -11,7 +11,7 @@
   --bg:#0f172a;--surface:#1e293b;--surface2:#263248;--border:#334155;
   --accent:#14b8a6;--accent2:#0ea5e9;--danger:#ef4444;--warn:#f59e0b;--success:#22c55e;
   --text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;
-  --m1:#6366f1;--m2:#f59e0b;--m3:#22c55e;
+  --m0:#3b82f6;--m1:#6366f1;--m2:#f59e0b;--m3:#22c55e;
 }
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:14px}
 
@@ -97,6 +97,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .mod-label{font-size:11px;color:var(--text3);width:24px;flex-shrink:0}
 .progress-track{flex:1;background:var(--bg);border-radius:4px;height:6px;overflow:hidden}
 .progress-fill{height:100%;border-radius:4px;transition:width .3s}
+.fill-m0{background:var(--m0)}
 .fill-m1{background:var(--m1)}
 .fill-m2{background:var(--m2)}
 .fill-m3{background:var(--m3)}
@@ -302,6 +303,11 @@ const views = {
 
   // ── Dashboard ──
   async dashboard() {
+    // Destroy existing chart instances BEFORE clearing innerHTML
+    // (clearing innerHTML removes the canvas elements, making stale instances unrecoverable)
+    ['chart-daily','chart-pipeline'].forEach(id => {
+      if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+    });
     const mc = document.getElementById('main-content');
     const m = await api('/api/metrics');
     if (!m) return;
@@ -339,14 +345,15 @@ const views = {
         </div>
         <div class="card" style="padding:14px 16px">
           <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">📚 Progreso Módulos</div>
-          ${moduleBarSm('M1: El Dinero y Vos', m.modules.m1Active, m.modules.m1Done, '#6366f1')}
-          ${moduleBarSm('M2: Orden Financiero', m.modules.m2Active, m.modules.m2Done, '#f59e0b')}
-          ${moduleBarSm('M3: Metas y Crecimiento', m.modules.m3Active, m.modules.m3Done, '#22c55e')}
+          ${moduleBarSm('M0: Diagnóstico 🔍', m.modules.m0Active, m.modules.m0Done, '#3b82f6', m.total)}
+          ${moduleBarSm('M1: El Dinero y Vos', m.modules.m1Active, m.modules.m1Done, '#6366f1', m.total)}
+          ${moduleBarSm('M2: Orden Financiero', m.modules.m2Active, m.modules.m2Done, '#f59e0b', m.total)}
+          ${moduleBarSm('M3: Metas y Crecimiento', m.modules.m3Active, m.modules.m3Done, '#22c55e', m.total)}
           <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
-              <div style="font-size:20px;font-weight:800;color:#6366f1">${m.modules.m1Active + m.modules.m1Done}</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:2px">alcanzaron M1</div>
+              <div style="font-size:20px;font-weight:800;color:#3b82f6">${m.modules.m0Active + m.modules.m0Done}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">hicieron M0</div>
             </div>
             <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
               <div style="font-size:20px;font-weight:800;color:#22c55e">${m.modules.m2Done + m.modules.m3Active + m.modules.m3Done}</div>
@@ -408,6 +415,7 @@ const views = {
         </select>
         <select class="filter-input" id="f-mod" onchange="loadUsers()">
           <option value="">Todos los módulos</option>
+          <option value="m0">En M0</option>
           <option value="m1">En M1</option>
           <option value="m2">En M2</option>
           <option value="m3">En M3</option>
@@ -456,6 +464,7 @@ const views = {
                   <div class="kcard-name">${u.name||formatPhone(u.phone)}</div>
                   <div class="kcard-phone">${formatPhone(u.phone)}</div>
                   <div class="flex gap-8 mt-4" style="flex-wrap:wrap">
+                    ${modBadge('M0', u.m0_status||'locked')}
                     ${modBadge('M1', u.m1_status)}
                     ${modBadge('M2', u.m2_status)}
                     ${modBadge('M3', u.m3_status)}
@@ -596,6 +605,7 @@ async function loadUsers(page) {
             <td class="text-sm text-muted">${formatPhone(u.phone)}</td>
             <td>${leadBadge(u.lead_status)}</td>
             <td>
+              <div class="mod-bar">${modStatusDot(u.m0_status||'locked')} <span class="text-sm">M0</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m0" style="width:${u.m0_progress||0}%"></div></div></div>
               <div class="mod-bar">${modStatusDot(u.m1_status)} <span class="text-sm">M1</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m1" style="width:${u.m1_progress}%"></div></div></div>
               <div class="mod-bar">${modStatusDot(u.m2_status)} <span class="text-sm">M2</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m2" style="width:${u.m2_progress}%"></div></div></div>
               <div class="mod-bar">${modStatusDot(u.m3_status)} <span class="text-sm">M3</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m3" style="width:${u.m3_progress}%"></div></div></div>
@@ -651,7 +661,20 @@ async function openUser(phone) {
         </div>
         <div>
           <div class="text-sm text-muted">Puntos totales</div><div class="mt-4 mb-8"><strong style="color:var(--accent);font-size:20px">🏆 ${data.total_points}</strong></div>
-          <div class="text-sm text-muted">Mensajes enviados</div><div class="mt-4 mb-8"><strong>💬 ${data.message_count}</strong></div>
+          <div class="text-sm text-muted">Mensajes totales</div>
+          <div class="mt-4 mb-8" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <strong>💬 ${data.message_count}</strong>
+            <span style="font-size:11px;color:var(--text3)">
+              ${(() => {
+                const ses = data.session_messages || 0;
+                const prev = Math.max(0, (data.message_count||0) - ses);
+                return prev > 0
+                  ? `<span title="Sesiones anteriores" style="background:var(--surface2);border-radius:4px;padding:1px 6px">📚 ${prev} ant.</span>
+                     <span title="Última sesión" style="background:var(--surface2);border-radius:4px;padding:1px 6px">🔄 ${ses} últ.</span>`
+                  : `<span style="background:var(--surface2);border-radius:4px;padding:1px 6px">🔄 ${ses} últ. sesión</span>`;
+              })()}
+            </span>
+          </div>
           <div class="text-sm text-muted">Diagnóstico</div><div class="mt-4 mb-8">${diagBadge(data.diagnostic_status, data.diagnostic_profile)}</div>
           <div class="text-sm text-muted">Etapa actual</div><div class="mt-4 mb-8"><code style="color:var(--accent2)">${data.current_stage||'—'} / ${data.current_step||'—'}</code></div>
         </div>
@@ -665,6 +688,7 @@ async function openUser(phone) {
 
     <!-- Tab: Modules -->
     <div id="tab-modules" class="tab-content">
+      ${modCard('M0','Diagnóstico Financiero 🔍','Perfil financiero inicial',data.m0_status||'locked',data.m0_progress||0,data.m0_rating,'var(--m0)')}
       ${modCard('M1','El Dinero y Vos 💰','Emociones y creencias financieras',data.m1_status,data.m1_progress,data.m1_rating,'var(--m1)')}
       ${modCard('M2','Orden Financiero 📊','Control de gastos y fugas',data.m2_status,data.m2_progress,data.m2_rating,'var(--m2)')}
       ${modCard('M3','Metas y Crecimiento 🎯','Planificación y objetivos',data.m3_status,data.m3_progress,data.m3_rating,'var(--m3)')}
@@ -812,16 +836,18 @@ function moduleBar(label, active, done, color) {
   </div>`;
 }
 
-function moduleBarSm(label, active, done, color) {
-  const total = active + done;
+function moduleBarSm(label, active, done, color, total) {
+  const denom = total || (active + done) || 1;
+  const pctDone   = Math.round(done   / denom * 100);
+  const pctActive = Math.round(active / denom * 100);
   return `<div style="margin-bottom:10px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
       <span style="font-size:11px;color:var(--text2)">${label}</span>
-      <span style="font-size:10px;color:var(--text3)">${active} activos · ${done} completados</span>
+      <span style="font-size:10px;color:var(--text3)">${active} activos · ${done} compl. · <strong style="color:var(--text2)">${pctDone+pctActive}%</strong></span>
     </div>
-    <div style="display:flex;gap:3px">
-      ${done > 0 ? `<div style="height:5px;border-radius:3px;background:${color};flex:${done}" title="${done} completados"></div>` : ''}
-      ${active > 0 ? `<div style="height:5px;border-radius:3px;background:${color}66;flex:${active}" title="${active} en progreso"></div>` : ''}
+    <div style="display:flex;background:var(--border);border-radius:3px;height:5px;overflow:hidden">
+      ${pctDone   > 0 ? `<div style="height:5px;background:${color};width:${pctDone}%" title="${done} completados (${pctDone}%)"></div>` : ''}
+      ${pctActive > 0 ? `<div style="height:5px;background:${color}66;width:${pctActive}%" title="${active} en progreso (${pctActive}%)"></div>` : ''}
     </div>
   </div>`;
 }

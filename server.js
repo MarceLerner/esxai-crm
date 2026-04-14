@@ -83,16 +83,34 @@ app.post('/api/webhook/n8n', (req, res) => {
     const diagnostic = flow.diagnostic || {};
     const modules = (learning.modules) || {};
 
+    // Smart session message tracking: accumulate total, track current session separately
+    const incomingSessionMsgs = session.message_count || 0;
+    const existingUser = db.getUser(phone);
+    const prevSessionMsgs = (existingUser && existingUser.session_messages) || 0;
+    const prevTotalMsgs   = (existingUser && existingUser.message_count)    || 0;
+    let newTotalMsgs;
+    if (incomingSessionMsgs >= prevSessionMsgs) {
+      // Same session continuing: add the delta to cumulative total
+      newTotalMsgs = prevTotalMsgs + (incomingSessionMsgs - prevSessionMsgs);
+    } else {
+      // New session started (count reset): add all new session messages
+      newTotalMsgs = prevTotalMsgs + incomingSessionMsgs;
+    }
+
     db.upsertUser({
       phone,
       name: registration.name || userData.name || body.contact_name || null,
       age_range: registration.age_range || userData.age || null,
       education_level: registration.education_level || userData.studies || null,
       accepted_privacy: session.accepted_privacy ? 1 : 0,
-      message_count: session.message_count || 0,
+      message_count:    newTotalMsgs,
+      session_messages: incomingSessionMsgs,
       total_points: session.total_points || 0,
       current_stage: navigation.current_stage || null,
       current_step: navigation.current_step || null,
+      m0_status:   modules.m0?.status   || (existingUser?.m0_status)   || 'locked',
+      m0_progress: modules.m0?.progress || (existingUser?.m0_progress) || 0,
+      m0_rating:   modules.m0?.rating   || (existingUser?.m0_rating)   || null,
       m1_status:   modules.m1?.status   || 'locked',
       m1_progress: modules.m1?.progress || 0,
       m1_rating:   modules.m1?.rating   || null,
@@ -138,22 +156,6 @@ app.patch('/api/users/:phone', requireAuth, (req, res) => {
   if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'Sin cambios' });
   db.updateUser(req.params.phone, updates);
   res.json({ ok: true });
-});
-
-app.delete('/api/users/:phone', requireAuth, (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Sin permisos' });
-  const deleted = db.deleteUser(req.params.phone);
-  if (!deleted) return res.status(404).json({ error: 'Usuario no encontrado' });
-  res.json({ ok: true });
-});
-
-app.post('/api/users/bulk-delete', requireAuth, (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Sin permisos' });
-  const { phones } = req.body;
-  if (!phones || !Array.isArray(phones) || phones.length === 0)
-    return res.status(400).json({ error: 'Falta array phones' });
-  const deleted = db.deleteUsers(phones);
-  res.json({ ok: true, deleted });
 });
 
 // ─── Pipeline ─────────────────────────────────────────────────────────────────

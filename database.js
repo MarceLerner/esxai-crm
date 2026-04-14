@@ -57,19 +57,20 @@ if (!_db.users) _db.users = {};
 if (Object.keys(_db.users).length === 0) {
   const now = Date.now();
   const demoUsers = [
-    { phone:'5491112345001', name:'Valentina López',   age_range:'25-30', education_level:'universitario', message_count:42, total_points:85,  current_stage:'m2', current_step:'s2', m1_status:'completed', m1_progress:100, m1_rating:'5', m2_status:'in_progress', m2_progress:40,  m3_status:'locked', m3_progress:0,  diagnostic_status:'not_started', lead_status:'activo',   last_interaction: new Date(now-2*3600000).toISOString() },
-    { phone:'5491112345002', name:'Matías Rodríguez',  age_range:'30-40', education_level:'secundario',    message_count:18, total_points:30,  current_stage:'m1', current_step:'s3', m1_status:'in_progress', m1_progress:60,  m2_status:'locked', m2_progress:0,  m3_status:'locked', m3_progress:0,  diagnostic_status:'not_started', lead_status:'activo',   last_interaction: new Date(now-5*3600000).toISOString() },
-    { phone:'5491112345003', name:'Camila Fernández',  age_range:'18-25', education_level:'universitario', message_count:5,  total_points:5,   current_stage:'m1', current_step:'intro', m1_status:'in_progress', m1_progress:10, m2_status:'locked', m2_progress:0,  m3_status:'locked', m3_progress:0,  diagnostic_status:'not_started', lead_status:'nuevo',    last_interaction: new Date(now-1*3600000).toISOString() },
-    { phone:'5491112345004', name:'Lucas Martínez',    age_range:'30-40', education_level:'universitario', message_count:87, total_points:200, current_stage:'m3', current_step:'s2', m1_status:'completed', m1_progress:100, m1_rating:'4', m2_status:'completed', m2_progress:100, m2_rating:'5', m3_status:'in_progress', m3_progress:50, diagnostic_status:'completed', diagnostic_profile:'moderado', lead_status:'cliente',  last_interaction: new Date(now-30*60000).toISOString() },
-    { phone:'5491112345005', name:'Sofía García',      age_range:'25-30', education_level:'terciario',     message_count:3,  total_points:0,   current_stage:'onboarding', current_step:null, m1_status:'locked', m1_progress:0, m2_status:'locked', m2_progress:0, m3_status:'locked', m3_progress:0, diagnostic_status:'not_started', lead_status:'nuevo',    last_interaction: new Date(now-20*60000).toISOString() },
-    { phone:'5491112345006', name:'Nicolás Torres',    age_range:'40-50', education_level:'universitario', message_count:65, total_points:175, current_stage:'m3', current_step:'closing', m1_status:'completed', m1_progress:100, m1_rating:'5', m2_status:'completed', m2_progress:100, m2_rating:'4', m3_status:'completed', m3_progress:100, m3_rating:'5', diagnostic_status:'completed', diagnostic_profile:'agresivo', lead_status:'cliente', last_interaction: new Date(now-2*86400000).toISOString() },
-    { phone:'5491112345007', name:'Florencia Pérez',   age_range:'25-30', education_level:'universitario', message_count:22, total_points:45,  current_stage:'m1', current_step:'s5', m1_status:'in_progress', m1_progress:80,  m2_status:'locked', m2_progress:0,  m3_status:'locked', m3_progress:0,  diagnostic_status:'not_started', lead_status:'activo',   last_interaction: new Date(now-4*3600000).toISOString() },
-    { phone:'5491112345008', name:'Diego Sánchez',     age_range:'30-40', education_level:'primario',      message_count:1,  total_points:0,   current_stage:null, current_step:null, m1_status:'locked', m1_progress:0, m2_status:'locked', m2_progress:0, m3_status:'locked', m3_progress:0, diagnostic_status:'not_started', lead_status:'nuevo',    last_interaction: new Date(now-10*60000).toISOString() },
+    { phone:'5491112345001', name:'Valentina López',   age_range:'25-30', education_level:'universitario', message_count:42, session_messages:8,  total_points:85,  current_stage:'m2', current_step:'s2', m0_status:'completed', m0_progress:100, m0_rating:'5', m1_status:'completed', m1_progress:100, m1_rating:'5', m2_status:'in_progress', m2_progress:40,  m3_status:'locked', m3_progress:0,  diagnostic_status:'not_started', lead_status:'activo',   last_interaction: new Date(now-2*3600000).toISOString() },
+    { phone:'5491112345002', name:'Matías Rodríguez',  age_range:'30-40', education_level:'secundario',    message_count:18, session_messages:5,  total_points:30,  current_stage:'m1', current_step:'s3', m0_status:'completed', m0_progress:100, m0_rating:'4', m1_status:'in_progress', m1_progress:60,  m2_status:'locked', m2_progress:0,  m3_status:'locked', m3_progress:0,  diagnostic_status:'not_started', lead_status:'activo',   last_interaction: new Date(now-5*3600000).toISOString() },
+    { phone:'5491112345003', name:'Camila Fernández',  age_range:'18-25', education_level:'universitario', message_count:5,  session_messages:5,  total_points:5,   current_stage:'m0', current_step:'intro', m0_status:'in_progress', m0_progress:30, m1_status:'locked', m1_progress:0, m2_status:'locked', m2_progress:0,  m3_status:'locked', m3_progress:0,  diagnostic_status:'not_started', lead_status:'nuevo',    last_interaction: new Date(now-1*3600000).toISOString() },
+    { phone:'5491112345004', name:'Lucas Martínez',    age_range:'30-40', education_level:'universitario', message_count:87, session_messages:12, total_points:200, current_stage:'m3', current_step:'s2', m0_status:'completed', m0_progress:100, m0_rating:'5', m1_status:'completed', m1_progress:100, m1_rating:'4', m2_status:'completed', m2_progress:100, m2_rating:'5', m3_status:'in_progress', m3_progress:50, diagnostic_status:'completed', diagnostic_profile:'moderado', lead_status:'cliente',  last_interaction: new Date(now-30*60000).toISOString() },
+    { phone:'5491112345005', name:'Sofía García',      age_range:'25-30', education_level:'terciario',     message_count:3,  session_messages:3,  total_points:0,   current_stage:'onboarding', current_step:null, m0_status:'locked', m0_progress:0, m1_status:'locked', m1_progress:0, m2_status:'locked', m2_progress:0, m3_status:'locked', m3_progress:0, diagnostic_status:'not_started', lead_status:'nuevo',    last_interaction: new Date(now-20*60000).toISOString() },
+    { phone:'5491112345006', name:'Nicolás Torres',    age_range:'40-50', education_level:'universitario', message_count:65, session_messages:6,  total_points:175, current_stage:'m3', current_step:'closing', m0_status:'completed', m0_progress:100, m0_rating:'5', m1_status:'completed', m1_progress:100, m1_rating:'5', m2_status:'completed', m2_progress:100, m2_rating:'4', m3_status:'completed', m3_progress:100, m3_rating:'5', diagnostic_status:'completed', diagnostic_profile:'agresivo', lead_status:'cliente', last_interaction: new Date(now-2*86400000).toISOString() },
+    { phone:'5491112345007', name:'Florencia Pérez',   age_range:'25-30', education_level:'universitario', message_count:22, session_messages:7,  total_points:45,  current_stage:'m1', current_step:'s5', m0_status:'completed', m0_progress:100, m0_rating:'4', m1_status:'in_progress', m1_progress:80,  m2_status:'locked', m2_progress:0,  m3_status:'locked', m3_progress:0,  diagnostic_status:'not_started', lead_status:'activo',   last_interaction: new Date(now-4*3600000).toISOString() },
+    { phone:'5491112345008', name:'Diego Sánchez',     age_range:'30-40', education_level:'primario',      message_count:1,  session_messages:1,  total_points:0,   current_stage:null, current_step:null, m0_status:'locked', m0_progress:0, m1_status:'locked', m1_progress:0, m2_status:'locked', m2_progress:0, m3_status:'locked', m3_progress:0, diagnostic_status:'not_started', lead_status:'nuevo',    last_interaction: new Date(now-10*60000).toISOString() },
   ];
   demoUsers.forEach(u => {
     _db.users[u.phone] = {
       ...u,
       accepted_privacy: 1,
+      m0_rating: u.m0_rating || null,
       m1_rating: u.m1_rating || null,
       m2_rating: u.m2_rating || null,
       m3_rating: u.m3_rating || null,
@@ -97,14 +98,10 @@ const db = {
       users = users.filter(u => (u.name||'').toLowerCase().includes(q) || (u.phone||'').includes(q));
     }
     if (filters.lead_status) users = users.filter(u => u.lead_status === filters.lead_status);
+    if (filters.module === 'm0') users = users.filter(u => u.m0_status !== 'locked');
     if (filters.module === 'm1') users = users.filter(u => u.m1_status !== 'locked');
     if (filters.module === 'm2') users = users.filter(u => u.m2_status !== 'locked');
     if (filters.module === 'm3') users = users.filter(u => u.m3_status !== 'locked');
-    // Date range filters (ISO date strings YYYY-MM-DD)
-    if (filters.date_from) users = users.filter(u => (u.last_interaction||'') >= filters.date_from);
-    if (filters.date_to)   users = users.filter(u => (u.last_interaction||'') <= filters.date_to + 'T23:59:59.999Z');
-    if (filters.first_seen_from) users = users.filter(u => (u.first_seen||'') >= filters.first_seen_from);
-    if (filters.first_seen_to)   users = users.filter(u => (u.first_seen||'') <= filters.first_seen_to + 'T23:59:59.999Z');
 
     const sortMap = { last_interaction:'last_interaction', first_seen:'first_seen', total_points:'total_points', message_count:'message_count', name:'name' };
     const sortKey = sortMap[filters.sort] || 'last_interaction';
@@ -135,20 +132,6 @@ const db = {
     if (!_db.users[phone]) return;
     _db.users[phone] = { ..._db.users[phone], ...updates };
     save(_db);
-  },
-
-  deleteUser(phone) {
-    if (!_db.users[phone]) return false;
-    delete _db.users[phone];
-    save(_db);
-    return true;
-  },
-
-  deleteUsers(phones) {
-    let deleted = 0;
-    phones.forEach(p => { if (_db.users[p]) { delete _db.users[p]; deleted++; } });
-    if (deleted > 0) save(_db);
-    return deleted;
   },
 
   // --- Interactions ---
@@ -213,6 +196,8 @@ const db = {
     const pipeline = Object.entries(pipelineMap).map(([lead_status,c])=>({lead_status,c}));
 
     // Modules
+    const m0Active = users.filter(u=>u.m0_status==='in_progress').length;
+    const m0Done   = users.filter(u=>u.m0_status==='completed').length;
     const m1Active = users.filter(u=>u.m1_status==='in_progress').length;
     const m1Done   = users.filter(u=>u.m1_status==='completed').length;
     const m2Active = users.filter(u=>u.m2_status==='in_progress').length;
@@ -235,7 +220,7 @@ const db = {
       total, fromLaunch, activeToday, activeWeek, clients, msgsToday,
       avgPoints: Math.round(avgPoints),
       pipeline,
-      modules: { m1Active, m1Done, m2Active, m2Done, m3Active, m3Done },
+      modules: { m0Active, m0Done, m1Active, m1Done, m2Active, m2Done, m3Active, m3Done },
       daily: Object.entries(daily).map(([day,c])=>({day,c})),
       recent: db.getRecentInteractions(15),
       launchDate,
