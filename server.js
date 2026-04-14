@@ -181,7 +181,28 @@ app.patch('/api/settings', requireAuth, (req, res) => {
 // ─── SPA fallback ─────────────────────────────────────────────────────────────
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.listen(PORT, () => {
+// ─── Auto-sync desde Supabase al arrancar con DB vacía ────────────────────────
+// Si Railway redeploya y borra el JSON, al arrancar detecta 0 usuarios y
+// llama al webhook de N8N que lee Supabase y re-importa todo automáticamente.
+const N8N_SYNC_WEBHOOK = process.env.N8N_SYNC_WEBHOOK ||
+  'https://automations.somosesxai.com.ar/webhook/crm-sync';
+
+async function autoSyncOnStartup() {
+  const metrics = db.getMetrics();
+  if (metrics.total > 0) {
+    console.log(`  📊 DB tiene ${metrics.total} usuarios — sync no necesario`);
+    return;
+  }
+  console.log('  ⚠️  DB vacía — disparando sync automático desde Supabase...');
+  try {
+    const res = await fetch(N8N_SYNC_WEBHOOK);
+    console.log(`  ✅ Sync disparado (HTTP ${res.status}) — usuarios llegando en segundos`);
+  } catch(e) {
+    console.log(`  ⚠️  Auto-sync falló: ${e.message}`);
+  }
+}
+
+app.listen(PORT, async () => {
   console.log(`\n╔══════════════════════════════════════════╗`);
   console.log(`║  ✅ EsXAI CRM corriendo en puerto ${PORT}   ║`);
   console.log(`╠══════════════════════════════════════════╣`);
@@ -189,4 +210,6 @@ app.listen(PORT, () => {
   console.log(`║  📡 Webhook: /api/webhook/n8n            ║`);
   console.log(`║  🔑 admin / esxai2026                    ║`);
   console.log(`╚══════════════════════════════════════════╝\n`);
+  // Auto-sync if DB is empty (e.g. after Railway redeploy wiped ephemeral storage)
+  await autoSyncOnStartup();
 });
