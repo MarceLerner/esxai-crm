@@ -605,10 +605,11 @@ async function loadUsers(page) {
             <td class="text-sm text-muted">${formatPhone(u.phone)}</td>
             <td>${leadBadge(u.lead_status)}</td>
             <td>
-              <div class="mod-bar">${modStatusDot(u.m0_status||'locked')} <span class="text-sm">M0</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m0" style="width:${u.m0_progress||0}%"></div></div></div>
-              <div class="mod-bar">${modStatusDot(u.m1_status)} <span class="text-sm">M1</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m1" style="width:${u.m1_progress}%"></div></div></div>
-              <div class="mod-bar">${modStatusDot(u.m2_status)} <span class="text-sm">M2</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m2" style="width:${u.m2_progress}%"></div></div></div>
-              <div class="mod-bar">${modStatusDot(u.m3_status)} <span class="text-sm">M3</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m3" style="width:${u.m3_progress}%"></div></div></div>
+              ${u.current_stage ? `<div style="margin-bottom:6px">${stageBadge(u.current_stage)}</div>` : ''}
+              <div class="mod-bar" style="${u.current_stage==='m0'?'font-weight:700':'opacity:0.6'}">${modStatusDot(u.m0_status||'locked')} <span class="text-sm" style="color:${u.current_stage==='m0'?'var(--m0)':'inherit'}">M0</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m0" style="width:${u.m0_progress||0}%"></div></div></div>
+              <div class="mod-bar" style="${u.current_stage==='m1'?'font-weight:700':'opacity:0.6'}">${modStatusDot(u.m1_status)} <span class="text-sm" style="color:${u.current_stage==='m1'?'var(--m1)':'inherit'}">M1</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m1" style="width:${u.m1_progress}%"></div></div></div>
+              <div class="mod-bar" style="${u.current_stage==='m2'?'font-weight:700':'opacity:0.6'}">${modStatusDot(u.m2_status)} <span class="text-sm" style="color:${u.current_stage==='m2'?'var(--m2)':'inherit'}">M2</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m2" style="width:${u.m2_progress}%"></div></div></div>
+              <div class="mod-bar" style="${u.current_stage==='m3'?'font-weight:700':'opacity:0.6'}">${modStatusDot(u.m3_status)} <span class="text-sm" style="color:${u.current_stage==='m3'?'var(--m3)':'inherit'}">M3</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m3" style="width:${u.m3_progress}%"></div></div></div>
             </td>
             <td><strong style="color:var(--accent)">${u.total_points}</strong></td>
             <td>${u.message_count}</td>
@@ -879,6 +880,12 @@ function modBadge(label, status) {
 function modStatusDot(s) {
   const c = s==='completed'?'#22c55e':s==='in_progress'?'#6366f1':'#334155';
   return `<div style="width:7px;height:7px;border-radius:50%;background:${c};flex-shrink:0"></div>`;
+}
+function stageBadge(stage) {
+  const map = { m0:{label:'M0',color:'var(--m0)'}, m1:{label:'M1',color:'var(--m1)'}, m2:{label:'M2',color:'var(--m2)'}, m3:{label:'M3',color:'var(--m3)'} };
+  const m = map[stage?.toLowerCase()];
+  if (!m) return stage ? `<span style="font-size:10px;color:var(--text3);padding:1px 6px;border-radius:4px;border:1px solid var(--border)">${stage}</span>` : '';
+  return `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;background:${m.color}22;color:${m.color};padding:2px 7px;border-radius:4px;font-weight:700;border:1px solid ${m.color}44">▶ ${m.label}</span>`;
 }
 function statusLabel(s) { return {locked:'Bloqueado',in_progress:'En progreso',completed:'Completado',not_started:'No iniciado'}[s]||s; }
 function diagBadge(status, profile) {
