@@ -599,22 +599,7 @@ async function loadUsers(page) {
         <th>Módulos</th><th>Puntos</th><th>Mensajes</th><th>Última interacción</th>
       </tr></thead>
       <tbody>
-        ${data.users.map(u => `
-          <tr class="clickable-row" onclick="openUser('${u.phone}')">
-            <td><strong>${u.name||'Sin nombre'}</strong><br><span class="text-sm text-muted">${u.age_range||'—'} · ${u.education_level||'—'}</span></td>
-            <td class="text-sm text-muted">${formatPhone(u.phone)}</td>
-            <td>${leadBadge(u.lead_status)}</td>
-            <td>
-              ${u.current_stage ? `<div style="margin-bottom:6px">${stageBadge(u.current_stage)}</div>` : ''}
-              <div class="mod-bar" style="${u.current_stage==='m0'?'font-weight:700':'opacity:0.6'}">${modStatusDot(u.m0_status||'locked')} <span class="text-sm" style="color:${u.current_stage==='m0'?'var(--m0)':'inherit'}">M0</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m0" style="width:${u.m0_progress||0}%"></div></div></div>
-              <div class="mod-bar" style="${u.current_stage==='m1'?'font-weight:700':'opacity:0.6'}">${modStatusDot(u.m1_status)} <span class="text-sm" style="color:${u.current_stage==='m1'?'var(--m1)':'inherit'}">M1</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m1" style="width:${u.m1_progress}%"></div></div></div>
-              <div class="mod-bar" style="${u.current_stage==='m2'?'font-weight:700':'opacity:0.6'}">${modStatusDot(u.m2_status)} <span class="text-sm" style="color:${u.current_stage==='m2'?'var(--m2)':'inherit'}">M2</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m2" style="width:${u.m2_progress}%"></div></div></div>
-              <div class="mod-bar" style="${u.current_stage==='m3'?'font-weight:700':'opacity:0.6'}">${modStatusDot(u.m3_status)} <span class="text-sm" style="color:${u.current_stage==='m3'?'var(--m3)':'inherit'}">M3</span> <div class="progress-track" style="width:60px"><div class="progress-fill fill-m3" style="width:${u.m3_progress}%"></div></div></div>
-            </td>
-            <td><strong style="color:var(--accent)">${u.total_points}</strong></td>
-            <td>${u.message_count}</td>
-            <td class="text-sm text-muted">${timeAgo(u.last_interaction)}</td>
-          </tr>`).join('')}
+        ${data.users.map(buildUserRow).join('')}
       </tbody>
     </table>`;
   }
@@ -872,6 +857,54 @@ function modCard(id, name, desc, status, progress, rating, color) {
   </div>`;
 }
 
+function userModuleStage(stage) {
+  if (!stage) return -1;
+  const s = stage.toLowerCase();
+  if (s === 'm3') return 3;
+  if (s === 'm2') return 2;
+  if (s === 'm1') return 1;
+  return 0;
+}
+function userModStatus(stored, so, idx) {
+  if (stored && stored !== 'locked') return stored;
+  if (so < 0) return 'locked';
+  if (so > idx) return 'completed';
+  if (so === idx) return 'in_progress';
+  return 'locked';
+}
+function userModProgress(stored, so, idx) {
+  if (stored > 0) return stored;
+  const s = userModStatus(null, so, idx);
+  if (s === 'completed') return 100;
+  if (s === 'in_progress') return 15;
+  return 0;
+}
+function buildUserRow(u) {
+  const so = userModuleStage(u.current_stage);
+  const m0s = userModStatus(u.m0_status, so, 0);
+  const m1s = userModStatus(u.m1_status, so, 1);
+  const m2s = userModStatus(u.m2_status, so, 2);
+  const m3s = userModStatus(u.m3_status, so, 3);
+  const m0p = userModProgress(u.m0_progress, so, 0);
+  const m1p = userModProgress(u.m1_progress, so, 1);
+  const m2p = userModProgress(u.m2_progress, so, 2);
+  const m3p = userModProgress(u.m3_progress, so, 3);
+  const badge = u.current_stage ? '<div style="margin-bottom:6px">' + stageBadge(u.current_stage) + '</div>' : '';
+  return '<tr class="clickable-row" onclick="openUser(\'' + u.phone + '\')">'
+    + '<td><strong>' + (u.name || 'Sin nombre') + '</strong><br><span class="text-sm text-muted">' + (u.age_range || '—') + ' · ' + (u.education_level || '—') + '</span></td>'
+    + '<td class="text-sm text-muted">' + formatPhone(u.phone) + '</td>'
+    + '<td>' + leadBadge(u.lead_status) + '</td>'
+    + '<td>' + badge
+      + '<div class="mod-bar" style="' + (so === 0 ? 'font-weight:700' : 'opacity:0.6') + '">' + modStatusDot(m0s) + ' <span class="text-sm" style="color:' + (so === 0 ? 'var(--m0)' : 'inherit') + '">M0</span><div class="progress-track" style="width:60px"><div class="progress-fill fill-m0" style="width:' + m0p + '%"></div></div></div>'
+      + '<div class="mod-bar" style="' + (so === 1 ? 'font-weight:700' : 'opacity:0.6') + '">' + modStatusDot(m1s) + ' <span class="text-sm" style="color:' + (so === 1 ? 'var(--m1)' : 'inherit') + '">M1</span><div class="progress-track" style="width:60px"><div class="progress-fill fill-m1" style="width:' + m1p + '%"></div></div></div>'
+      + '<div class="mod-bar" style="' + (so === 2 ? 'font-weight:700' : 'opacity:0.6') + '">' + modStatusDot(m2s) + ' <span class="text-sm" style="color:' + (so === 2 ? 'var(--m2)' : 'inherit') + '">M2</span><div class="progress-track" style="width:60px"><div class="progress-fill fill-m2" style="width:' + m2p + '%"></div></div></div>'
+      + '<div class="mod-bar" style="' + (so === 3 ? 'font-weight:700' : 'opacity:0.6') + '">' + modStatusDot(m3s) + ' <span class="text-sm" style="color:' + (so === 3 ? 'var(--m3)' : 'inherit') + '">M3</span><div class="progress-track" style="width:60px"><div class="progress-fill fill-m3" style="width:' + m3p + '%"></div></div></div>'
+    + '</td>'
+    + '<td><strong style="color:var(--accent)">' + u.total_points + '</strong></td>'
+    + '<td>' + u.message_count + '</td>'
+    + '<td class="text-sm text-muted">' + timeAgo(u.last_interaction) + '</td>'
+    + '</tr>';
+}
 function leadBadge(s) { return `<span class="badge badge-${s||'nuevo'}">${(s||'nuevo').charAt(0).toUpperCase()+(s||'nuevo').slice(1)}</span>`; }
 function modBadge(label, status) {
   const color = status==='completed'?'#22c55e':status==='in_progress'?'#6366f1':'#334155';
@@ -881,10 +914,36 @@ function modStatusDot(s) {
   const c = s==='completed'?'#22c55e':s==='in_progress'?'#6366f1':'#334155';
   return `<div style="width:7px;height:7px;border-radius:50%;background:${c};flex-shrink:0"></div>`;
 }
+function stageOrder(stage) {
+  if (!stage) return -1;
+  const s = stage.toLowerCase();
+  if (s === 'm3') return 3;
+  if (s === 'm2') return 2;
+  if (s === 'm1') return 1;
+  return 0;
+}
+function derivedModStatus(u, mod) {
+  const stored = u[`${mod}_status`];
+  if (stored && stored !== 'locked') return stored;
+  const modIdx = { m0:0, m1:1, m2:2, m3:3 }[mod];
+  const so = stageOrder(u.current_stage);
+  if (so < 0) return 'locked';
+  if (so > modIdx) return 'completed';
+  if (so === modIdx) return 'in_progress';
+  return 'locked';
+}
+function derivedProgress(u, mod) {
+  const stored = u[`${mod}_progress`] || 0;
+  if (stored > 0) return stored;
+  const s = derivedModStatus(u, mod);
+  if (s === 'completed') return 100;
+  if (s === 'in_progress') return 15;
+  return 0;
+}
 function stageBadge(stage) {
-  const map = { m0:{label:'M0',color:'var(--m0)'}, m1:{label:'M1',color:'var(--m1)'}, m2:{label:'M2',color:'var(--m2)'}, m3:{label:'M3',color:'var(--m3)'} };
-  const m = map[stage?.toLowerCase()];
-  if (!m) return stage ? `<span style="font-size:10px;color:var(--text3);padding:1px 6px;border-radius:4px;border:1px solid var(--border)">${stage}</span>` : '';
+  const map = { m1:{label:'M1',color:'var(--m1)'}, m2:{label:'M2',color:'var(--m2)'}, m3:{label:'M3',color:'var(--m3)'} };
+  const m = map[stage?.toLowerCase()] || (stage ? {label:'M0',color:'var(--m0)'} : null);
+  if (!m) return '';
   return `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;background:${m.color}22;color:${m.color};padding:2px 7px;border-radius:4px;font-weight:700;border:1px solid ${m.color}44">▶ ${m.label}</span>`;
 }
 function statusLabel(s) { return {locked:'Bloqueado',in_progress:'En progreso',completed:'Completado',not_started:'No iniciado'}[s]||s; }
