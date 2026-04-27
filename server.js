@@ -97,6 +97,17 @@ app.post('/api/webhook/n8n', (req, res) => {
       newTotalMsgs = prevTotalMsgs + incomingSessionMsgs;
     }
 
+    // Auto-derive lead_status from current_stage, unless manually overridden
+    let autoLeadStatus = existingUser?.lead_status || 'nuevo';
+    if (!existingUser?.lead_status_manual) {
+      const cs = (navigation.current_stage || '').toLowerCase();
+      if (cs === 'm3' || cs === 'm2') autoLeadStatus = 'caliente';
+      else if (cs === 'm1' || cs === 'main_menu' || cs === 'diagnostic' || cs === 'onboarding' || cs === 'onboarding_quick') autoLeadStatus = 'activo';
+      else if (cs === 'entry') autoLeadStatus = 'activo';
+      else if (!cs && newTotalMsgs > 0) autoLeadStatus = 'activo';
+      else if (!cs) autoLeadStatus = 'nuevo';
+    }
+
     db.upsertUser({
       phone,
       name: registration.name || userData.name || body.contact_name || null,
@@ -108,6 +119,7 @@ app.post('/api/webhook/n8n', (req, res) => {
       total_points: session.total_points || 0,
       current_stage: navigation.current_stage || null,
       current_step: navigation.current_step || null,
+      lead_status: autoLeadStatus,
       m0_status:   modules.m0?.status   || (existingUser?.m0_status)   || 'locked',
       m0_progress: modules.m0?.progress || (existingUser?.m0_progress) || 0,
       m0_rating:   modules.m0?.rating   || (existingUser?.m0_rating)   || null,
@@ -154,6 +166,7 @@ app.patch('/api/users/:phone', requireAuth, (req, res) => {
   const allowed = ['lead_status','lead_notes','assigned_to'];
   const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
   if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'Sin cambios' });
+  if (updates.lead_status) updates.lead_status_manual = true;
   db.updateUser(req.params.phone, updates);
   res.json({ ok: true });
 });
@@ -187,6 +200,25 @@ app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 const N8N_SYNC_WEBHOOK = process.env.N8N_SYNC_WEBHOOK ||
   'https://automations.somosesxai.com.ar/webhook/crm-sync';
 
+function deriveLeadStatus(cs) {
+  const s = (cs || '').toLowerCase();
+  if (s === 'm3' || s === 'm2') return 'caliente';
+  if (s === 'm1' || s === 'main_menu' || s === 'diagnostic' || s === 'onboarding' || s === 'onboarding_quick' || s === 'entry') return 'activo';
+  return null;
+}
+
+function migrateLeadStatus() {
+  const users = db.getUsers({ limit: 9999 }).users;
+  let updated = 0;
+  users.forEach(u => {
+    if (!u.lead_status_manual && u.lead_status === 'nuevo') {
+      const derived = deriveLeadStatus(u.current_stage);
+      if (derived) { db.updateUser(u.phone, { lead_status: derived }); updated++; }
+    }
+  });
+  if (updated > 0) console.log(`  🔄 Pipeline migrado: ${updated} usuarios actualizados`);
+}
+
 async function autoSyncOnStartup() {
   const metrics = db.getMetrics();
   if (metrics.total > 0) {
@@ -203,6 +235,7 @@ async function autoSyncOnStartup() {
 }
 
 app.listen(PORT, async () => {
+  migrateLeadStatus();
   console.log(`\n╔══════════════════════════════════════════╗`);
   console.log(`║  ✅ EsXAI CRM corriendo en puerto ${PORT}   ║`);
   console.log(`╠══════════════════════════════════════════╣`);
