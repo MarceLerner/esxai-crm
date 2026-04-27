@@ -221,14 +221,10 @@ function migrateLeadStatus() {
 
 async function autoSyncOnStartup() {
   const metrics = db.getMetrics();
-  if (metrics.total > 0) {
-    console.log(`  📊 DB tiene ${metrics.total} usuarios — sync no necesario`);
-    return;
-  }
-  console.log('  ⚠️  DB vacía — disparando sync automático desde Supabase...');
+  console.log(`  📊 DB tiene ${metrics.total} usuarios — disparando sync desde Supabase...`);
   try {
     const res = await fetch(N8N_SYNC_WEBHOOK);
-    console.log(`  ✅ Sync disparado (HTTP ${res.status}) — usuarios llegando en segundos`);
+    console.log(`  ✅ Sync disparado (HTTP ${res.status}) — datos actualizándose en segundos`);
   } catch(e) {
     console.log(`  ⚠️  Auto-sync falló: ${e.message}`);
   }
